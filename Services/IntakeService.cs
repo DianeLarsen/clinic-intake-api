@@ -8,16 +8,20 @@ public class IntakeService : IIntakeService
 {
     private readonly IIntakeRepository _repository;
 
-     public IntakeService(IIntakeRepository repository)
+    public IntakeService(IIntakeRepository repository)
     {
         _repository = repository;
     }
 
     public IntakeRequest AddRequest(string patientName)
     {
+        if (string.IsNullOrWhiteSpace(patientName))
+        {
+            throw new ArgumentException("Patient name is required.");
+        }
         int id = _repository.GetNextId();
-        IntakeRequest request = new IntakeRequest(id, patientName);  
-                
+        IntakeRequest request = new IntakeRequest(id, patientName);
+
         return _repository.Add(request);
     }
 
@@ -33,7 +37,6 @@ public class IntakeService : IIntakeService
         request?.UpdateStatus(status);
 
         return request is not null;
-      
     }
 
     public int GetRequestCount()
@@ -48,7 +51,11 @@ public class IntakeService : IIntakeService
 
     public IEnumerable<IntakeRequest> GetCompletedRequests()
     {
-        return _repository.GetAll().Where(
-            request => request.Status == RequestStatus.Completed);
+        return _repository.GetAll().Where(request => request.Status == RequestStatus.Completed);
+    }
+
+    public bool DeleteRequest(int id)
+    {
+        return _repository.Delete(id);
     }
 }

@@ -5,18 +5,17 @@ namespace ClinicIntakeApi.Services;
 
 public interface IIntakeService
 {
-    IntakeRequest AddRequest(
-        string patientName);
+    IntakeRequest AddRequest(string patientName);
 
     IntakeRequest? FindRequestById(int id);
 
-    bool UpdateStatus(
-        int id,
-        RequestStatus status);
+    bool UpdateStatus(int id, RequestStatus status);
 
     int GetRequestCount();
 
     IEnumerable<IntakeRequest> GetAllRequests();
 
     IEnumerable<IntakeRequest> GetCompletedRequests();
+
+    bool DeleteRequest(int id);
 }

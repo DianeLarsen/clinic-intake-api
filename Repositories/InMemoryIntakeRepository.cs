@@ -3,8 +3,7 @@ using ClinicIntakeApi.Models;
 
 namespace ClinicIntakeApi.Repositories;
 
-public class InMemoryIntakeRepository
-    : IIntakeRepository
+public class InMemoryIntakeRepository : IIntakeRepository
 {
     private readonly List<IntakeRequest> _requests = [];
     private int _nextId = 1;
@@ -22,12 +21,23 @@ public class InMemoryIntakeRepository
 
     public IntakeRequest? GetById(int id)
     {
-        return _requests.FirstOrDefault(
-            r => r.Id == id);
+        return _requests.FirstOrDefault(r => r.Id == id);
     }
 
-     public int GetNextId()
+    public int GetNextId()
     {
         return _nextId++;
+    }
+
+    public bool Delete(int id)
+    {
+        IntakeRequest? request = GetById(id);
+
+        if (request is null)
+        {
+            return false;
+        }
+
+        return _requests.Remove(request);
     }
 }
