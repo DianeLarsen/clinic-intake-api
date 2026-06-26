@@ -24,11 +24,6 @@ public class InMemoryIntakeRepository : IIntakeRepository
         return _requests.FirstOrDefault(r => r.Id == id);
     }
 
-    public int GetNextId()
-    {
-        return _nextId++;
-    }
-
     public bool Delete(int id)
     {
         IntakeRequest? request = GetById(id);

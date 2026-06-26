@@ -11,7 +11,5 @@ public interface IIntakeRepository
 
     IntakeRequest? GetById(int id);
 
-    int GetNextId();
-
     bool Delete(int id);
 }

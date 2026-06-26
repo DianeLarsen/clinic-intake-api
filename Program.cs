@@ -20,9 +20,9 @@ builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
     options.UseSqlite("Data Source=clinic-intake.db")
 );
 
-builder.Services.AddSingleton<IIntakeRepository, InMemoryIntakeRepository>();
+builder.Services.AddScoped<IIntakeRepository, EfIntakeRepository>();
 
-builder.Services.AddSingleton<IIntakeService, IntakeService>();
+builder.Services.AddScoped<IIntakeService, IntakeService>();
 
 var app = builder.Build();
 
