@@ -1,8 +1,10 @@
 using System.Text.Json.Serialization;
+using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,10 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
+    options.UseSqlite("Data Source=clinic-intake.db")
+);
 
 builder.Services.AddSingleton<IIntakeRepository, InMemoryIntakeRepository>();
 

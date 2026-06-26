@@ -1,18 +1,17 @@
-// Models/IntakeRequest.cs
 namespace ClinicIntakeApi.Models;
-
 
 public class IntakeRequest
 {
-    public int Id { get; }
+    public int Id { get; set; }
 
-    public string PatientName { get; }
+    public string PatientName { get; set; } = "";
 
-    public RequestStatus Status { get; private set; }
+    public RequestStatus Status { get; private set; } = RequestStatus.Submitted;
 
-    public IntakeRequest(int id, string patientName)
+    private IntakeRequest() { }
+
+    public IntakeRequest(string patientName)
     {
-        Id = id;
         PatientName = patientName;
         Status = RequestStatus.Submitted;
     }

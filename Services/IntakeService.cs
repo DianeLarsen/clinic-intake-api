@@ -19,8 +19,8 @@ public class IntakeService : IIntakeService
         {
             throw new ArgumentException("Patient name is required.");
         }
-        int id = _repository.GetNextId();
-        IntakeRequest request = new IntakeRequest(id, patientName);
+
+        IntakeRequest request = new IntakeRequest(patientName);
 
         return _repository.Add(request);
     }
