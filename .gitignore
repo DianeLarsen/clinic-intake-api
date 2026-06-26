@@ -1,10 +1,26 @@
+# Build output
+
 bin/
 obj/
 
-.vs/
-.vscode/
+# Visual Studio
 
+.vs/
 *.user
 *.suo
 
+# VS Code (optional)
+
+.vscode/
+
+# Local configuration
+
+appsettings.json
 appsettings.Development.json
+appsettings.Production.json
+
+# SQLite database (development)
+
+*.db
+*.db-shm
+*.db-wal
