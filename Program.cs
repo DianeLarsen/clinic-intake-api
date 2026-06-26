@@ -86,13 +86,4 @@ app.MapDelete(
     }
 );
 
-using (var scope = app.Services.CreateScope())
-{
-    IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
-
-    intakeService.AddRequest("Diane");
-    intakeService.AddRequest("Bob");
-    intakeService.AddRequest("Alice");
-}
-
 app.Run();

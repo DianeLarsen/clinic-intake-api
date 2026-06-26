@@ -6,7 +6,6 @@ namespace ClinicIntakeApi.Repositories;
 public class InMemoryIntakeRepository : IIntakeRepository
 {
     private readonly List<IntakeRequest> _requests = [];
-    private int _nextId = 1;
 
     public IntakeRequest Add(IntakeRequest request)
     {
