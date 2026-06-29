@@ -36,9 +36,9 @@ app.UseHttpsRedirection();
 
 app.MapGet(
     "/requests",
-    (IIntakeService intakeService) =>
+    (RequestStatus? status, IIntakeService intakeService) =>
     {
-        return intakeService.GetAllRequests();
+        return intakeService.GetRequests(status);
     }
 );
 

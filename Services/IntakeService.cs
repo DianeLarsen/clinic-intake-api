@@ -54,6 +54,18 @@ public class IntakeService : IIntakeService
         return _repository.GetAll().Where(request => request.Status == RequestStatus.Completed);
     }
 
+    public IEnumerable<IntakeRequest> GetRequests(RequestStatus? status)
+    {
+        IEnumerable<IntakeRequest> requests = _repository.GetAll();
+
+        if (status is not null)
+        {
+            requests = requests.Where(request => request.Status == status.Value);
+        }
+
+        return requests;
+    }
+
     public bool DeleteRequest(int id)
     {
         return _repository.Delete(id);

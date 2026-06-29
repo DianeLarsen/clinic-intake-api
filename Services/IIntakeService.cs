@@ -17,5 +17,7 @@ public interface IIntakeService
 
     IEnumerable<IntakeRequest> GetCompletedRequests();
 
+    IEnumerable<IntakeRequest> GetRequests(RequestStatus? status);
+
     bool DeleteRequest(int id);
 }
