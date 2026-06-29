@@ -202,3 +202,14 @@ LINQ provides a readable, consistent way to query and manipulate collections usi
 * The same syntax works with both `List<T>` and `DbSet<T>`.
 * Each LINQ method returns a new sequence, allowing queries to be built one step at a time.
 * Entity Framework Core translates LINQ into SQL automatically when querying a database.
+* LINQ is C#'s standard query language for working with collections of data. Entity Framework is one technology that understands LINQ and translates it into SQL.
+* LINQ is C#'s built-in way of querying collections. Entity Framework is the tool that understands LINQ and translates it into SQL when the collection happens to be a database table.
+| JavaScript / TypeScript | C#                              |
+| ----------------------- | ------------------------------- |
+| Classes                 | Classes                         |
+| Interfaces              | Interfaces                      |
+| `array.filter()`        | `Where()` (LINQ)                |
+| `array.map()`           | `Select()` (LINQ)               |
+| `array.sort()`          | `OrderBy()` (LINQ)              |
+| Drizzle / Prisma        | Entity Framework Core           |
+| PostgreSQL              | SQLite / SQL Server / Azure SQL |

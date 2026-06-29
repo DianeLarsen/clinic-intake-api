@@ -54,14 +54,42 @@ public class IntakeService : IIntakeService
         return _repository.GetAll().Where(request => request.Status == RequestStatus.Completed);
     }
 
-    public IEnumerable<IntakeRequest> GetRequests(RequestStatus? status)
+    public IEnumerable<IntakeRequest> GetRequests(
+        RequestStatus? status,
+        string? patient,
+        string? sort,
+        int page,
+        int pageSize
+    )
     {
         IEnumerable<IntakeRequest> requests = _repository.GetAll();
 
+        // Filter by status
         if (status is not null)
         {
-            requests = requests.Where(request => request.Status == status.Value);
+            requests = requests.Where(r => r.Status == status.Value);
         }
+
+        // Filter by patient name
+        if (!string.IsNullOrWhiteSpace(patient))
+        {
+            requests = requests.Where(r =>
+                r.PatientName.Contains(patient, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        // Sort
+        if (sort == "name")
+        {
+            requests = requests.OrderBy(r => r.PatientName);
+        }
+
+        if (sort == "name_desc")
+        {
+            requests = requests.OrderByDescending(r => r.PatientName);
+        }
+
+        requests = requests.Skip((page - 1) * pageSize).Take(pageSize);
 
         return requests;
     }

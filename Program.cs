@@ -36,9 +36,16 @@ app.UseHttpsRedirection();
 
 app.MapGet(
     "/requests",
-    (RequestStatus? status, IIntakeService intakeService) =>
+    (
+        IIntakeService intakeService,
+        RequestStatus? status,
+        string? patient,
+        string? sort,
+        int page = 1,
+        int pageSize = 10
+    ) =>
     {
-        return intakeService.GetRequests(status);
+        return intakeService.GetRequests(status, patient, sort, page, pageSize);
     }
 );
 
@@ -85,5 +92,51 @@ app.MapDelete(
         return deleted ? Results.NoContent() : Results.NotFound();
     }
 );
+
+using (var scope = app.Services.CreateScope())
+{
+    IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
+
+    if (!intakeService.GetAllRequests().Any())
+    {
+        string[] names =
+        [
+            "Alice",
+            "Bob",
+            "Charlie",
+            "Diane",
+            "Emma",
+            "Frank",
+            "Grace",
+            "Henry",
+            "Isabella",
+            "Jack",
+            "Karen",
+            "Liam",
+            "Mia",
+            "Noah",
+            "Olivia",
+            "Patrick",
+            "Quinn",
+            "Ryan",
+            "Sophia",
+            "Tyler",
+        ];
+
+        for (int i = 0; i < names.Length; i++)
+        {
+            IntakeRequest request = intakeService.AddRequest(names[i]);
+
+            if (i % 3 == 0)
+            {
+                intakeService.UpdateStatus(request.Id, RequestStatus.InReview);
+            }
+            else if (i % 5 == 0)
+            {
+                intakeService.UpdateStatus(request.Id, RequestStatus.Completed);
+            }
+        }
+    }
+}
 
 app.Run();

@@ -17,7 +17,13 @@ public interface IIntakeService
 
     IEnumerable<IntakeRequest> GetCompletedRequests();
 
-    IEnumerable<IntakeRequest> GetRequests(RequestStatus? status);
+    IEnumerable<IntakeRequest> GetRequests(
+        RequestStatus? status,
+        string? patient,
+        string? sort,
+        int page,
+        int pageSize
+    );
 
     bool DeleteRequest(int id);
 }
