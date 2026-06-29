@@ -36,7 +36,7 @@ app.UseHttpsRedirection();
 
 app.MapGet(
     "/requests",
-    (
+    async (
         IIntakeService intakeService,
         RequestStatus? status,
         string? patient,
@@ -45,30 +45,31 @@ app.MapGet(
         int pageSize = 10
     ) =>
     {
-        return Results.Ok(intakeService.GetRequestSummaries(status, patient, sort, page, pageSize));
+        return Results.Ok(
+            await intakeService.GetRequestSummariesAsync(status, patient, sort, page, pageSize)
+        );
     }
 );
 
 app.MapGet(
     "/requests/{id}",
-    (int id, IIntakeService intakeService) =>
+    async (int id, IIntakeService intakeService) =>
     {
-        IntakeRequest? request = intakeService.FindRequestById(id);
+        IntakeRequest? request = await intakeService.FindRequestByIdAsync(id);
 
         return request is not null ? Results.Ok(request) : Results.NotFound();
     }
 );
 
-
 app.MapPost(
     "/requests",
-    (CreateRequestDto dto, IIntakeService intakeService) =>
+    async (CreateRequestDto dto, IIntakeService intakeService) =>
     {
         if (string.IsNullOrWhiteSpace(dto.PatientName))
         {
             return Results.BadRequest("Patient name is required.");
         }
-        IntakeRequest request = intakeService.AddRequest(dto.PatientName);
+        IntakeRequest request = await intakeService.AddRequestAsync(dto.PatientName);
 
         return Results.Created($"/requests/{request.Id}", request);
     }
@@ -76,9 +77,9 @@ app.MapPost(
 
 app.MapPut(
     "/requests/{id}/status",
-    (int id, UpdateRequestStatusDto dto, IIntakeService intakeService) =>
+    async (int id, UpdateRequestStatusDto dto, IIntakeService intakeService) =>
     {
-        bool updated = intakeService.UpdateStatus(id, dto.Status);
+        bool updated = await intakeService.UpdateStatusAsync(id, dto.Status);
 
         return updated ? Results.NoContent() : Results.NotFound();
     }
@@ -86,9 +87,9 @@ app.MapPut(
 
 app.MapDelete(
     "/requests/{id}",
-    (int id, IIntakeService intakeService) =>
+    async (int id, IIntakeService intakeService) =>
     {
-        bool deleted = intakeService.DeleteRequest(id);
+        bool deleted = await intakeService.DeleteRequestAsync(id);
 
         return deleted ? Results.NoContent() : Results.NotFound();
     }
@@ -97,8 +98,9 @@ app.MapDelete(
 using (var scope = app.Services.CreateScope())
 {
     IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
+    IEnumerable<IntakeRequest> existingRequests = await intakeService.GetAllRequestsAsync();
 
-    if (!intakeService.GetAllRequests().Any())
+    if (!existingRequests.Any())
     {
         string[] names =
         [
@@ -126,15 +128,15 @@ using (var scope = app.Services.CreateScope())
 
         for (int i = 0; i < names.Length; i++)
         {
-            IntakeRequest request = intakeService.AddRequest(names[i]);
+            IntakeRequest request = await intakeService.AddRequestAsync(names[i]);
 
             if (i % 3 == 0)
             {
-                intakeService.UpdateStatus(request.Id, RequestStatus.InReview);
+                await intakeService.UpdateStatusAsync(request.Id, RequestStatus.InReview);
             }
             else if (i % 5 == 0)
             {
-                intakeService.UpdateStatus(request.Id, RequestStatus.Completed);
+                await intakeService.UpdateStatusAsync(request.Id, RequestStatus.Completed);
             }
         }
     }

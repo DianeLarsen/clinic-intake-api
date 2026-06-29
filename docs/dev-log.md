@@ -119,3 +119,78 @@ Issues:
 Biggest Insight:
 - Dependency Injection doesn't just "inject dependencies." It centralizes who creates and wires objects.
 - EF Core is basically Prisma/Drizzle for C#.
+
+## 2026-06-26
+
+### Completed
+
+* Replaced the in-memory repository with `EfIntakeRepository`.
+* Connected the application to SQLite using Entity Framework Core.
+* Created the first EF Core migration.
+* Created and initialized the SQLite database.
+* Added automatic development seed data with first-run detection.
+* Implemented advanced LINQ querying:
+
+  * Status filtering
+  * Patient name searching
+  * Sorting
+  * Pagination
+* Added DTO projection using `Select()`.
+* Refactored DTO mapping from the endpoint into the service layer.
+* Expanded the Backend Engineering Handbook with:
+
+  * Entity Framework Core
+  * DbContext
+  * DbSet
+  * Migrations
+  * LINQ
+  * DTOs + `Select()`
+* Created a LINQ Cheatsheet to track commonly used operators.
+
+### Learned
+
+* EF Core Migrations
+* SQLite database workflow
+* LINQ query composition
+* DTO projection
+* Query pipelines
+* Pagination
+* Seed data initialization
+
+LINQ methods learned:
+
+* `Where()`
+* `Contains()`
+* `FirstOrDefault()`
+* `Count()`
+* `Any()`
+* `OrderBy()`
+* `OrderByDescending()`
+* `Skip()`
+* `Take()`
+* `Select()`
+
+### Issues
+
+* Initially installed EF Core 10 instead of EF Core 8, causing package compatibility errors.
+* Seed data was inserted every application startup until an `Any()` check was added.
+* DTO mapping was originally placed inside the endpoint before being refactored into the service layer.
+* Needed to clarify the relationship between LINQ and Entity Framework. LINQ is part of C#, while EF Core translates LINQ queries into SQL.
+
+### Biggest Insights
+
+* LINQ is C#'s built-in query language, not a database library.
+* Entity Framework Core plays the same role in C# that Drizzle and Prisma play in JavaScript.
+* A single endpoint can support filtering, searching, sorting, pagination, and DTO projection without creating multiple specialized endpoints.
+* Good endpoint design keeps HTTP endpoints thin while placing business logic and data shaping inside the service layer.
+* LINQ methods form a query pipeline, with each method performing one operation before passing the results to the next step.
+
+### Confidence
+
+⭐⭐⭐⭐☆ (4/5)
+
+Still want more practice with:
+
+* Async/await
+* Writing more complex LINQ queries
+* Recognizing when DTOs should differ from domain models

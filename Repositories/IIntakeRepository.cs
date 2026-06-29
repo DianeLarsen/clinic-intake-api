@@ -5,11 +5,11 @@ namespace ClinicIntakeApi.Repositories;
 
 public interface IIntakeRepository
 {
-    IntakeRequest Add(IntakeRequest request);
+    Task<IntakeRequest> AddAsync(IntakeRequest request);
 
-    IEnumerable<IntakeRequest> GetAll();
+    Task<IEnumerable<IntakeRequest>> GetAllAsync();
 
-    IntakeRequest? GetById(int id);
+    Task<IntakeRequest?> GetByIdAsync(int id);
 
-    bool Delete(int id);
+    Task<bool> DeleteAsync(int id);
 }

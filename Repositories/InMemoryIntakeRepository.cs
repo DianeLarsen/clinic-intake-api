@@ -7,31 +7,31 @@ public class InMemoryIntakeRepository : IIntakeRepository
 {
     private readonly List<IntakeRequest> _requests = [];
 
-    public IntakeRequest Add(IntakeRequest request)
+    public async Task<IntakeRequest> AddAsync(IntakeRequest request)
     {
         _requests.Add(request);
-        return request;
+        return await Task.FromResult(request);
     }
 
-    public IEnumerable<IntakeRequest> GetAll()
+    public async Task<IEnumerable<IntakeRequest>> GetAllAsync()
     {
-        return _requests;
+        return await Task.FromResult(_requests);
     }
 
-    public IntakeRequest? GetById(int id)
+    public async Task<IntakeRequest?> GetByIdAsync(int id)
     {
-        return _requests.FirstOrDefault(r => r.Id == id);
+        return await Task.FromResult(_requests.FirstOrDefault(r => r.Id == id));
     }
 
-    public bool Delete(int id)
+    public async Task<bool> DeleteAsync(int id)
     {
-        IntakeRequest? request = GetById(id);
+        IntakeRequest? request = await GetByIdAsync(id);
 
         if (request is null)
         {
             return false;
         }
 
-        return _requests.Remove(request);
+        return await Task.FromResult(_requests.Remove(request));
     }
 }

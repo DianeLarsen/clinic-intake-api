@@ -6,19 +6,19 @@ namespace ClinicIntakeApi.Services;
 
 public interface IIntakeService
 {
-    IntakeRequest AddRequest(string patientName);
+    Task<IntakeRequest> AddRequestAsync(string patientName);
 
-    IntakeRequest? FindRequestById(int id);
+    Task<IntakeRequest?> FindRequestByIdAsync(int id);
 
-    bool UpdateStatus(int id, RequestStatus status);
+    Task<bool> UpdateStatusAsync(int id, RequestStatus status);
 
-    int GetRequestCount();
+    Task<int> GetRequestCountAsync();
 
-    IEnumerable<IntakeRequest> GetAllRequests();
+    Task<IEnumerable<IntakeRequest>> GetAllRequestsAsync();
 
-    IEnumerable<IntakeRequest> GetCompletedRequests();
+    Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync();
 
-    IEnumerable<IntakeRequest> GetRequests(
+    Task<IEnumerable<IntakeRequest>> GetRequestsAsync(
         RequestStatus? status,
         string? patient,
         string? sort,
@@ -26,9 +26,9 @@ public interface IIntakeService
         int pageSize
     );
 
-    bool DeleteRequest(int id);
+    Task<bool> DeleteRequestAsync(int id);
 
-    IEnumerable<RequestSummaryDto> GetRequestSummaries(
+    Task<IEnumerable<RequestSummaryDto>> GetRequestSummariesAsync(
         RequestStatus? status,
         string? patient,
         string? sort,

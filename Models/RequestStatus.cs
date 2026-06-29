@@ -5,5 +5,5 @@ public enum RequestStatus
 {
     Submitted,
     InReview,
-    Completed
+    Completed,
 }

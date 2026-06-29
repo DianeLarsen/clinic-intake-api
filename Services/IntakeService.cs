@@ -14,7 +14,7 @@ public class IntakeService : IIntakeService
         _repository = repository;
     }
 
-    public IntakeRequest AddRequest(string patientName)
+    public async Task<IntakeRequest> AddRequestAsync(string patientName)
     {
         if (string.IsNullOrWhiteSpace(patientName))
         {
@@ -23,39 +23,41 @@ public class IntakeService : IIntakeService
 
         IntakeRequest request = new IntakeRequest(patientName);
 
-        return _repository.Add(request);
+        return await _repository.AddAsync(request);
     }
 
-    public IntakeRequest? FindRequestById(int id)
+    public async Task<IntakeRequest?> FindRequestByIdAsync(int id)
     {
-        return _repository.GetById(id);
+        return await _repository.GetByIdAsync(id);
     }
 
-    public bool UpdateStatus(int id, RequestStatus status)
+    public async Task<bool> UpdateStatusAsync(int id, RequestStatus status)
     {
-        IntakeRequest? request = FindRequestById(id);
+        IntakeRequest? request = await FindRequestByIdAsync(id);
 
         request?.UpdateStatus(status);
 
         return request is not null;
     }
 
-    public int GetRequestCount()
+    public async Task<int> GetRequestCountAsync()
     {
-        return _repository.GetAll().Count();
+        var requests = await _repository.GetAllAsync();
+        return requests.Count();
     }
 
-    public IEnumerable<IntakeRequest> GetAllRequests()
+    public async Task<IEnumerable<IntakeRequest>> GetAllRequestsAsync()
     {
-        return _repository.GetAll();
+        return await _repository.GetAllAsync();
     }
 
-    public IEnumerable<IntakeRequest> GetCompletedRequests()
+    public async Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync()
     {
-        return _repository.GetAll().Where(request => request.Status == RequestStatus.Completed);
+        var requests = await _repository.GetAllAsync();
+        return requests.Where(request => request.Status == RequestStatus.Completed);
     }
 
-    public IEnumerable<IntakeRequest> GetRequests(
+    public async Task<IEnumerable<IntakeRequest>> GetRequestsAsync(
         RequestStatus? status,
         string? patient,
         string? sort,
@@ -63,7 +65,7 @@ public class IntakeService : IIntakeService
         int pageSize
     )
     {
-        IEnumerable<IntakeRequest> requests = _repository.GetAll();
+        IEnumerable<IntakeRequest> requests = await _repository.GetAllAsync();
 
         // Filter by status
         if (status is not null)
@@ -95,7 +97,7 @@ public class IntakeService : IIntakeService
         return requests;
     }
 
-    public IEnumerable<RequestSummaryDto> GetRequestSummaries(
+    public async Task<IEnumerable<RequestSummaryDto>> GetRequestSummariesAsync(
         RequestStatus? status,
         string? patient,
         string? sort,
@@ -103,7 +105,13 @@ public class IntakeService : IIntakeService
         int pageSize
     )
     {
-        IEnumerable<IntakeRequest> requests = GetRequests(status, patient, sort, page, pageSize);
+        IEnumerable<IntakeRequest> requests = await GetRequestsAsync(
+            status,
+            patient,
+            sort,
+            page,
+            pageSize
+        );
 
         return requests.Select(r => new RequestSummaryDto
         {
@@ -112,8 +120,8 @@ public class IntakeService : IIntakeService
         });
     }
 
-    public bool DeleteRequest(int id)
+    public async Task<bool> DeleteRequestAsync(int id)
     {
-        return _repository.Delete(id);
+        return await _repository.DeleteAsync(id);
     }
 }

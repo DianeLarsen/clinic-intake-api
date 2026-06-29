@@ -1,6 +1,6 @@
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Models;
-
+using Microsoft.EntityFrameworkCore;
 namespace ClinicIntakeApi.Repositories;
 
 public class EfIntakeRepository : IIntakeRepository
@@ -12,27 +12,27 @@ public class EfIntakeRepository : IIntakeRepository
         _db = db;
     }
 
-    public IntakeRequest Add(IntakeRequest request)
+    public async Task<IntakeRequest> AddAsync(IntakeRequest request)
     {
         _db.IntakeRequests.Add(request);
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
 
         return request;
     }
 
-    public IEnumerable<IntakeRequest> GetAll()
+    public async Task<IEnumerable<IntakeRequest>> GetAllAsync()
     {
-        return _db.IntakeRequests.ToList();
+        return await _db.IntakeRequests.ToListAsync();
     }
 
-    public IntakeRequest? GetById(int id)
+    public async Task<IntakeRequest?> GetByIdAsync(int id)
     {
-        return _db.IntakeRequests.FirstOrDefault(r => r.Id == id);
+        return await _db.IntakeRequests.FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    public bool Delete(int id)
+    public async Task<bool> DeleteAsync(int id)
     {
-        IntakeRequest? request = GetById(id);
+        IntakeRequest? request = await GetByIdAsync(id);
 
         if (request is null)
         {
@@ -40,7 +40,7 @@ public class EfIntakeRepository : IIntakeRepository
         }
 
         _db.IntakeRequests.Remove(request);
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
 
         return true;
     }
