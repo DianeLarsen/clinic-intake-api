@@ -114,7 +114,75 @@ Alice
 
 ---
 
+## Pagination
+
+### Skip()
+
+Skips a number of items.
+
+```csharp
+requests.Skip(10);
+```
+Example:
+Skip the first 10 records.
+
+Used for pagination.
+
+---
+
+### Take()
+
+Takes a number of items.
+
+```csharp
+requests.Take(10);
+```
+Example:
+
+Take the next 10 records.
+
+Used with Skip() for pagination.
+
+
+### Pagination Formula
+
+```csharp
+requests
+    .Skip((page - 1) * pageSize)
+    .Take(pageSize);
+```
+
+Example:
+
+GET /requests?page=2&pageSize=5
+
+This skips the first 5 records and returns the next 5.
+
+
+## Projection
+
+### Select()
+
+Transforms each item into a new shape.
+```csharp
+requests.Select(r => new RequestSummaryDto
+{
+    Id = r.Id,
+    DisplayText = $"{r.PatientName} - {r.Status}"
+});
+```
+
+Used when converting models into DTOs.
+
+Example:
+
+IntakeRequest → RequestSummaryDto
+
+
+---
+
 ## Common Query Pattern
+
 
 ```csharp
 IEnumerable<IntakeRequest> requests =
@@ -147,22 +215,21 @@ return requests;
 
 ## Methods Learned So Far
 
-| Method                | Purpose              |
-| --------------------- | -------------------- |
-| `Where()`             | Filter items         |
-| `Contains()`          | Partial text search  |
-| `FirstOrDefault()`    | First item or `null` |
-| `Count()`             | Count items          |
-| `OrderBy()`           | Sort ascending       |
-| `OrderByDescending()` | Sort descending      |
-
+| Method                | Purpose                   |
+| --------------------- | --------------------------|
+| `Where()`             | Filter items              |
+| `Contains()`          | Partial text search       |
+| `FirstOrDefault()`    | First item or `null`      |
+| `Count()`             | Count items               |
+| `OrderBy()`           | Sort ascending            |
+| `OrderByDescending()` | Sort descending           |
+| `Skip()`              | Skip items for pagination |
+| `Take()`              | Take items for pagination |
+| `Select()`            | Transform items           |
 ---
 
 ## Coming Next
 
-* `Skip()`
-* `Take()`
-* `Select()`
 * `Any()`
 * `All()`
 * `ThenBy()`
@@ -211,3 +278,6 @@ requests.Where(...);
 | Sort A → Z      | `OrderBy()`           |
 | Sort Z → A      | `OrderByDescending()` |
 | Search text     | `Contains()`          |
+| Skip records    | `Skip()`              |
+| Take records    | `Take()`              |
+| Change shape    | `Select()`            |
