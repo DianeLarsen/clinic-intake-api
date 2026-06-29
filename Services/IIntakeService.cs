@@ -1,5 +1,6 @@
 // Services/IIntakeService.cs
 using ClinicIntakeApi.Models;
+using ClinicIntakeApi.Dtos;
 
 namespace ClinicIntakeApi.Services;
 
@@ -26,4 +27,12 @@ public interface IIntakeService
     );
 
     bool DeleteRequest(int id);
+
+    IEnumerable<RequestSummaryDto> GetRequestSummaries(
+        RequestStatus? status,
+        string? patient,
+        string? sort,
+        int page,
+        int pageSize
+    );
 }

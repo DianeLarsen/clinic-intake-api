@@ -1,4 +1,5 @@
 // Services/IntakeService.cs
+using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Repositories;
 
@@ -92,6 +93,23 @@ public class IntakeService : IIntakeService
         requests = requests.Skip((page - 1) * pageSize).Take(pageSize);
 
         return requests;
+    }
+
+    public IEnumerable<RequestSummaryDto> GetRequestSummaries(
+        RequestStatus? status,
+        string? patient,
+        string? sort,
+        int page,
+        int pageSize
+    )
+    {
+        IEnumerable<IntakeRequest> requests = GetRequests(status, patient, sort, page, pageSize);
+
+        return requests.Select(r => new RequestSummaryDto
+        {
+            Id = r.Id,
+            DisplayText = $"{r.PatientName} - {r.Status}",
+        });
     }
 
     public bool DeleteRequest(int id)

@@ -45,7 +45,7 @@ app.MapGet(
         int pageSize = 10
     ) =>
     {
-        return intakeService.GetRequests(status, patient, sort, page, pageSize);
+        return Results.Ok(intakeService.GetRequestSummaries(status, patient, sort, page, pageSize));
     }
 );
 
@@ -58,6 +58,7 @@ app.MapGet(
         return request is not null ? Results.Ok(request) : Results.NotFound();
     }
 );
+
 
 app.MapPost(
     "/requests",
