@@ -183,6 +183,33 @@ Data sent **back** to the client.
 Different endpoints often use different DTOs.
 
 ---
+## DTOs + Select()
+
+DTOs become especially useful when combined with LINQ's `Select()` method.
+
+`Select()` transforms one type of object into another.
+
+In this project, the repository returns `IntakeRequest` objects, but the API does not always need to expose the full model.
+
+Instead, the service can transform each `IntakeRequest` into a `RequestSummaryDto`.
+
+```csharp
+public IEnumerable<RequestSummaryDto> GetRequestSummaries(
+    RequestStatus? status,
+    string? patient,
+    string? sort,
+    int page,
+    int pageSize)
+{
+    IEnumerable<IntakeRequest> requests =
+        GetRequests(status, patient, sort, page, pageSize);
+
+    return requests.Select(r => new RequestSummaryDto
+    {
+        Id = r.Id,
+        DisplayText = $"{r.PatientName} - {r.Status}",
+    });
+}
 
 ## Common Beginner Questions
 
