@@ -18,17 +18,9 @@ public interface IIntakeService
 
     Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync();
 
-    Task<IEnumerable<IntakeRequest>> GetRequestsAsync(
-        RequestStatus? status,
-        string? patient,
-        string? sort,
-        int page,
-        int pageSize
-    );
-
     Task<bool> DeleteRequestAsync(int id);
 
-    Task<IEnumerable<RequestSummaryDto>> GetRequestSummariesAsync(
+    Task<PagedResponse<RequestSummaryDto>> GetRequestSummariesAsync(
         RequestStatus? status,
         string? patient,
         string? sort,

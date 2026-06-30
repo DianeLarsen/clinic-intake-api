@@ -57,23 +57,19 @@ public class IntakeService : IIntakeService
         return requests.Where(request => request.Status == RequestStatus.Completed);
     }
 
-    public async Task<IEnumerable<IntakeRequest>> GetRequestsAsync(
+    private async Task<IEnumerable<IntakeRequest>> BuildRequestQueryAsync(
         RequestStatus? status,
         string? patient,
-        string? sort,
-        int page,
-        int pageSize
+        string? sort
     )
     {
         IEnumerable<IntakeRequest> requests = await _repository.GetAllAsync();
 
-        // Filter by status
         if (status is not null)
         {
             requests = requests.Where(r => r.Status == status.Value);
         }
 
-        // Filter by patient name
         if (!string.IsNullOrWhiteSpace(patient))
         {
             requests = requests.Where(r =>
@@ -81,7 +77,6 @@ public class IntakeService : IIntakeService
             );
         }
 
-        // Sort
         if (sort == "name")
         {
             requests = requests.OrderBy(r => r.PatientName);
@@ -92,12 +87,10 @@ public class IntakeService : IIntakeService
             requests = requests.OrderByDescending(r => r.PatientName);
         }
 
-        requests = requests.Skip((page - 1) * pageSize).Take(pageSize);
-
         return requests;
     }
 
-    public async Task<IEnumerable<RequestSummaryDto>> GetRequestSummariesAsync(
+    public async Task<PagedResponse<RequestSummaryDto>> GetRequestSummariesAsync(
         RequestStatus? status,
         string? patient,
         string? sort,
@@ -105,19 +98,29 @@ public class IntakeService : IIntakeService
         int pageSize
     )
     {
-        IEnumerable<IntakeRequest> requests = await GetRequestsAsync(
-            status,
-            patient,
-            sort,
-            page,
-            pageSize
-        );
+        IEnumerable<IntakeRequest> requests = await BuildRequestQueryAsync(status, patient, sort);
 
-        return requests.Select(r => new RequestSummaryDto
+        int totalCount = requests.Count();
+
+        int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        IEnumerable<RequestSummaryDto> items = requests
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new RequestSummaryDto
+            {
+                Id = r.Id,
+                DisplayText = $"{r.PatientName} - {r.Status}",
+            });
+
+        return new PagedResponse<RequestSummaryDto>
         {
-            Id = r.Id,
-            DisplayText = $"{r.PatientName} - {r.Status}",
-        });
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages,
+            Items = items,
+        };
     }
 
     public async Task<bool> DeleteRequestAsync(int id)
