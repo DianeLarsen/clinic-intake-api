@@ -194,3 +194,141 @@ Still want more practice with:
 * Async/await
 * Writing more complex LINQ queries
 * Recognizing when DTOs should differ from domain models
+
+## 2026-06-29
+
+### Completed
+
+* Refactored the entire application from synchronous to asynchronous operations.
+* Updated the repository layer to use Entity Framework Core async methods.
+* Updated the service layer to return `Task<T>` and use `await`.
+* Updated Minimal API endpoints to support asynchronous handlers.
+* Introduced a generic `PagedResponse<T>` wrapper for paginated endpoints.
+* Improved API responses to return pagination metadata alongside results.
+* Refactored pagination logic to correctly calculate total record count before applying `Skip()` and `Take()`.
+* Expanded the Backend Engineering Handbook with:
+  * Async/Await
+  * Program.cs
+  * Configuration
+  * Swagger
+* Added new Cheat Sheets for:
+  * EF Core
+  * HTTP
+  * Git
+
+### Learned
+
+* Async programming with `Task` and `await`
+* Entity Framework Core async methods
+* Generic response wrappers (`PagedResponse<T>`)
+* API response design
+* ASP.NET Core startup (`Program.cs`)
+* Application configuration
+* Swagger/OpenAPI
+
+New EF Core async methods learned:
+
+* `SaveChangesAsync()`
+* `ToListAsync()`
+* `FirstOrDefaultAsync()`
+
+### Issues
+
+* Initially returned a `Task` object instead of awaiting it, causing Swagger to serialize the task metadata instead of the actual data.
+* Accidentally calculated pagination totals after applying `Skip()` and `Take()`, resulting in incorrect page counts.
+* Needed to understand where `async` belongs in Minimal API endpoint lambdas.
+
+### Biggest Insights
+
+* Async/await isn't about making code execute faster. It's about allowing server threads to do other work while waiting on slow operations like database queries.
+* Every async method forms a chain. If one layer becomes async, every caller above it generally becomes async as well.
+* Generic types allow one response model (`PagedResponse<T>`) to work with any DTO.
+* A well-designed API returns both the requested data and useful metadata such as page number, total pages, and total record count.
+
+### Confidence
+
+⭐⭐⭐⭐☆ (4/5)
+
+Still want more practice with:
+
+* Async call chains
+* Generic response models
+* Designing REST API responses
+
+## 2026-06-30
+
+### Completed
+
+* Learned ASP.NET Core validation using Data Annotations.
+* Added validation attributes to DTOs.
+* Learned the differences between validation in Controllers and Minimal APIs.
+* Built a reusable generic `ValidationFilter<T>` for Minimal APIs.
+* Removed endpoint-specific validation logic in favor of centralized validation.
+* Reorganized the Backend Engineering Handbook into a structured learning reference.
+* Added and expanded handbook chapters for:
+  * Repository Pattern
+  * Service Layer
+  * Dependency Flow
+  * Minimal APIs
+  * Filtering
+  * Searching
+  * Sorting
+  * Pagination
+  * API Responses
+  * Program.cs
+  * Configuration
+  * Swagger
+  * Validation
+  * Collections
+  * Lambdas
+  * LINQ
+  * Nullable Reference Types
+  * Generics
+* Created README files for every handbook section and reorganized the project into a long-term reference guide.
+
+### Learned
+
+* Data Annotations
+* Validation pipeline
+* Endpoint Filters
+* Separation of concerns
+* Nullable Reference Types
+* Lambda expressions
+* Collections
+* API architecture
+* Request processing pipeline
+
+Validation attributes learned:
+
+* `[Required]`
+* `[StringLength]`
+* `[MinLength]`
+* `[MaxLength]`
+* `[Range]`
+* `[EmailAddress]`
+* `[Phone]`
+
+### Issues
+
+* Initially assumed Data Annotation attributes automatically validated requests in Minimal APIs.
+* Learned that Controllers automatically validate models, while Minimal APIs require explicit validation through Endpoint Filters or custom logic.
+* Needed to better understand where validation belongs within the application architecture.
+
+### Biggest Insights
+
+* Validation is not business logic. It belongs at the edge of the application before the service layer executes.
+* Data Annotations describe validation rules, but something else must enforce them.
+* Endpoint Filters in Minimal APIs serve a similar purpose to automatic model validation in Controllers.
+* DTOs define what valid input looks like, while services should assume they receive already validated data.
+* The more the project grows, the more valuable architectural separation becomes. Each layer should have one clear responsibility.
+
+### Confidence
+
+⭐⭐⭐⭐☆ (4/5)
+
+Still want more practice with:
+
+* Endpoint Filters
+* Validation strategies
+* Entity Framework Core Change Tracking
+* Relationships between entities

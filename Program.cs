@@ -1,39 +1,84 @@
 using System.Text.Json.Serialization;
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Dtos;
+using ClinicIntakeApi.Filters;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
 using Microsoft.EntityFrameworkCore;
 
+// Creates the application builder.
+// This is where services and application configuration are registered.
 var builder = WebApplication.CreateBuilder(args);
 
+//
+// Configure JSON serialization
+// Converts enums like RequestStatus.Submitted into
+// "Submitted" instead of 0.
+//
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+//
+// Register Swagger/OpenAPI services.
+// These generate interactive API documentation.
+//
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+//
+// Register Entity Framework Core.
+//
+// AddDbContext() creates one DbContext per HTTP request (Scoped).
+// EF will use SQLite as the database.
+//
 builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
     options.UseSqlite("Data Source=clinic-intake.db")
 );
 
+//
+// Dependency Injection registrations.
+//
+// Whenever something asks for IIntakeRepository,
+// create an EfIntakeRepository.
+//
+// Whenever something asks for IIntakeService,
+// create an IntakeService.
+//
 builder.Services.AddScoped<IIntakeRepository, EfIntakeRepository>();
-
 builder.Services.AddScoped<IIntakeService, IntakeService>();
 
+// Build the application after all services have been registered.
 var app = builder.Build();
 
+//
+// Only enable Swagger while developing.
+//
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+//
+// Redirect HTTP requests to HTTPS.
+//
 app.UseHttpsRedirection();
 
+//
+// GET /requests
+//
+// Supports:
+//
+// Filtering
+// Searching
+// Sorting
+// Pagination
+//
+// Returns a paged list of RequestSummaryDto.
+//
 app.MapGet(
     "/requests",
     async (
@@ -51,6 +96,11 @@ app.MapGet(
     }
 );
 
+//
+// GET /requests/{id}
+//
+// Returns one request by ID.
+//
 app.MapGet(
     "/requests/{id}",
     async (int id, IIntakeService intakeService) =>
@@ -61,20 +111,32 @@ app.MapGet(
     }
 );
 
+//
+// POST /requests
+//
+// Creates a new intake request.
+//
+// Validation happens BEFORE this endpoint executes
+// using the ValidationFilter below.
+//
 app.MapPost(
-    "/requests",
-    async (CreateRequestDto dto, IIntakeService intakeService) =>
-    {
-        if (string.IsNullOrWhiteSpace(dto.PatientName))
+        "/requests",
+        async (CreateRequestDto dto, IIntakeService intakeService) =>
         {
-            return Results.BadRequest("Patient name is required.");
+            IntakeRequest request = await intakeService.AddRequestAsync(dto.PatientName);
+
+            return Results.Created($"/requests/{request.Id}", request);
         }
-        IntakeRequest request = await intakeService.AddRequestAsync(dto.PatientName);
+    )
+    // Runs the generic validation filter.
+    // If validation fails, the endpoint never executes.
+    .AddEndpointFilter<ValidationFilter<CreateRequestDto>>();
 
-        return Results.Created($"/requests/{request.Id}", request);
-    }
-);
-
+//
+// PUT /requests/{id}/status
+//
+// Updates only the request status.
+//
 app.MapPut(
     "/requests/{id}/status",
     async (int id, UpdateRequestStatusDto dto, IIntakeService intakeService) =>
@@ -85,6 +147,11 @@ app.MapPut(
     }
 );
 
+//
+// DELETE /requests/{id}
+//
+// Deletes a request.
+//
 app.MapDelete(
     "/requests/{id}",
     async (int id, IIntakeService intakeService) =>
@@ -95,11 +162,21 @@ app.MapDelete(
     }
 );
 
+//
+// Development Seed Data
+//
+// Creates sample data only if the database is empty.
+//
+// CreateScope() is required because DbContext is Scoped.
+// Outside an HTTP request we must create our own scope.
+//
 using (var scope = app.Services.CreateScope())
 {
     IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
+
     IEnumerable<IntakeRequest> existingRequests = await intakeService.GetAllRequestsAsync();
 
+    // Only seed if this is a brand-new database.
     if (!existingRequests.Any())
     {
         string[] names =
@@ -126,10 +203,13 @@ using (var scope = app.Services.CreateScope())
             "Tyler",
         ];
 
+        // Create sample requests.
         for (int i = 0; i < names.Length; i++)
         {
             IntakeRequest request = await intakeService.AddRequestAsync(names[i]);
 
+            // Give some requests different statuses
+            // so filtering and searching have useful data.
             if (i % 3 == 0)
             {
                 await intakeService.UpdateStatusAsync(request.Id, RequestStatus.InReview);
@@ -142,4 +222,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+//
+// Start listening for HTTP requests.
+//
+// Nothing happens until app.Run() is called.
+//
 app.Run();
