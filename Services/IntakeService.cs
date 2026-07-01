@@ -14,14 +14,14 @@ public class IntakeService : IIntakeService
         _repository = repository;
     }
 
-    public async Task<IntakeRequest> AddRequestAsync(string patientName)
+    public async Task<IntakeRequest> AddRequestAsync(string patientName, int clinicId)
     {
         if (string.IsNullOrWhiteSpace(patientName))
         {
             throw new ArgumentException("Patient name is required.");
         }
 
-        IntakeRequest request = new IntakeRequest(patientName);
+        IntakeRequest request = new IntakeRequest(patientName) { ClinicId = clinicId };
 
         return await _repository.AddAsync(request);
     }
@@ -110,7 +110,10 @@ public class IntakeService : IIntakeService
             .Select(r => new RequestSummaryDto
             {
                 Id = r.Id,
-                DisplayText = $"{r.PatientName} - {r.Status}",
+                PatientName = r.Patient?.FullName ?? r.PatientName,
+                ClinicName = r.Clinic?.Name ?? "Unknown Clinic",
+                DisplayText =
+                    $"{r.Patient?.FullName ?? r.PatientName} - {r.Status} - {r.Clinic?.Name ?? "Unknown Clinic"}",
             });
 
         return new PagedResponse<RequestSummaryDto>

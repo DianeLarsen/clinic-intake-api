@@ -2,6 +2,7 @@
 using ClinicIntakeApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicIntakeApi.Migrations
 {
     [DbContext(typeof(ClinicIntakeDbContext))]
-    partial class ClinicIntakeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260630175630_AddClinicRelationship")]
+    partial class AddClinicRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.28");
@@ -40,9 +43,6 @@ namespace ClinicIntakeApi.Migrations
                     b.Property<int>("ClinicId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("PatientId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("PatientName")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -54,29 +54,7 @@ namespace ClinicIntakeApi.Migrations
 
                     b.HasIndex("ClinicId");
 
-                    b.HasIndex("PatientId");
-
                     b.ToTable("IntakeRequests");
-                });
-
-            modelBuilder.Entity("ClinicIntakeApi.Models.Patient", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ClinicId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClinicId");
-
-                    b.ToTable("Patients");
                 });
 
             modelBuilder.Entity("ClinicIntakeApi.Models.IntakeRequest", b =>
@@ -87,38 +65,12 @@ namespace ClinicIntakeApi.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ClinicIntakeApi.Models.Patient", "Patient")
-                        .WithMany("IntakeRequests")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Clinic");
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("ClinicIntakeApi.Models.Patient", b =>
-                {
-                    b.HasOne("ClinicIntakeApi.Models.Clinic", "Clinic")
-                        .WithMany("Patients")
-                        .HasForeignKey("ClinicId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Clinic");
                 });
 
             modelBuilder.Entity("ClinicIntakeApi.Models.Clinic", b =>
                 {
-                    b.Navigation("Patients");
-
                     b.Navigation("Requests");
-                });
-
-            modelBuilder.Entity("ClinicIntakeApi.Models.Patient", b =>
-                {
-                    b.Navigation("IntakeRequests");
                 });
 #pragma warning restore 612, 618
         }

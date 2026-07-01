@@ -22,7 +22,10 @@ public class EfIntakeRepository : IIntakeRepository
 
     public async Task<IEnumerable<IntakeRequest>> GetAllAsync()
     {
-        return await _db.IntakeRequests.ToListAsync();
+        return await _db
+            .IntakeRequests.Include(r => r.Patient)
+            .Include(r => r.Clinic)
+            .ToListAsync();
     }
 
     public async Task<IntakeRequest?> GetByIdAsync(int id)

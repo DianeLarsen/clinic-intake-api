@@ -123,7 +123,7 @@ app.MapPost(
         "/requests",
         async (CreateRequestDto dto, IIntakeService intakeService) =>
         {
-            IntakeRequest request = await intakeService.AddRequestAsync(dto.PatientName);
+            IntakeRequest request = await intakeService.AddRequestAsync(dto.PatientName, 1);
 
             return Results.Created($"/requests/{request.Id}", request);
         }
@@ -163,53 +163,146 @@ app.MapDelete(
 );
 
 //
-// Development Seed Data
+// Development Seed / Backfill Data
 //
-// Creates sample data only if the database is empty.
+// This block does two jobs:
 //
-// CreateScope() is required because DbContext is Scoped.
-// Outside an HTTP request we must create our own scope.
+// 1. If the database is brand new, it creates sample clinics,
+//    patients, and intake requests.
+//
+// 2. If the database already exists but has missing relationship data,
+//    it repairs/backfills that data.
+//
+// This is closer to a real migration mindset than deleting the database
+// every time the model changes. Tiny mercy from the database goblin.
 //
 using (var scope = app.Services.CreateScope())
 {
     IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
 
+    ClinicIntakeDbContext db = scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
     IEnumerable<IntakeRequest> existingRequests = await intakeService.GetAllRequestsAsync();
 
-    // Only seed if this is a brand-new database.
+    //
+    // Ensure default clinics exist.
+    //
+    // Clinics are parent records.
+    // A clinic can exist even if it has no patients or requests yet.
+    //
+    if (!db.Clinics.Any())
+    {
+        db.Clinics.AddRange(
+            new Clinic { Name = "Monroe Clinic" },
+            new Clinic { Name = "Everett Clinic" },
+            new Clinic { Name = "Seattle Clinic" }
+        );
+
+        await db.SaveChangesAsync();
+    }
+
+    Clinic[] clinics = db.Clinics.ToArray();
+
+    //
+    // Sample patient names used for development data.
+    //
+    string[] names =
+    [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diane",
+        "Emma",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Isabella",
+        "Jack",
+        "Karen",
+        "Liam",
+        "Mia",
+        "Noah",
+        "Olivia",
+        "Patrick",
+        "Quinn",
+        "Ryan",
+        "Sophia",
+        "Tyler",
+    ];
+
+    //
+    // Ensure default patients exist.
+    //
+    // Patients are child records of clinics.
+    // Every patient must belong to a valid clinic.
+    //
+    if (!db.Patients.Any())
+    {
+        Patient[] patientsToCreate = names
+            .Select(
+                (name, index) =>
+                    new Patient { FullName = name, ClinicId = clinics[index % clinics.Length].Id }
+            )
+            .ToArray();
+
+        db.Patients.AddRange(patientsToCreate);
+
+        await db.SaveChangesAsync();
+    }
+
+    // Load patients from the database after ensuring they exist.
+    // This array is used for both backfill logic and sample request creation.
+    Patient[] patients = db.Patients.ToArray();
+
+    // //
+    // // Backfill existing requests that do not have a PatientId.
+    // //
+    // // This handles older rows created before the Patient relationship existed.
+    // // Instead of deleting the database, we assign each old request to an
+    // // existing patient and keep ClinicId consistent with that patient's clinic.
+    // //
+    // int backfillIndex = 0;
+
+    // foreach (IntakeRequest request in existingRequests)
+    // {
+    //     if (request.PatientId is null)
+    //     {
+    //         Patient patient = patients[backfillIndex % patients.Length];
+
+    //         request.PatientId = patient.Id;
+    //         request.ClinicId = patient.ClinicId;
+
+    //         backfillIndex++;
+    //     }
+    // }
+
+    await db.SaveChangesAsync();
+
+    //
+    // If there are no requests at all, create sample intake requests.
+    //
+    // This runs only for a brand-new database.
+    //
     if (!existingRequests.Any())
     {
-        string[] names =
-        [
-            "Alice",
-            "Bob",
-            "Charlie",
-            "Diane",
-            "Emma",
-            "Frank",
-            "Grace",
-            "Henry",
-            "Isabella",
-            "Jack",
-            "Karen",
-            "Liam",
-            "Mia",
-            "Noah",
-            "Olivia",
-            "Patrick",
-            "Quinn",
-            "Ryan",
-            "Sophia",
-            "Tyler",
-        ];
-
-        // Create sample requests.
-        for (int i = 0; i < names.Length; i++)
+        for (int i = 0; i < patients.Length; i++)
         {
-            IntakeRequest request = await intakeService.AddRequestAsync(names[i]);
+            Patient patient = patients[i];
 
+            IntakeRequest request = await intakeService.AddRequestAsync(
+                patient.FullName,
+                patient.ClinicId
+            );
+
+            // Connect the intake request to the patient.
+            request.PatientId = patient.Id;
+
+            await db.SaveChangesAsync();
+
+            //
             // Give some requests different statuses
-            // so filtering and searching have useful data.
+            // so filtering, sorting, and searching have useful sample data.
+            //
             if (i % 3 == 0)
             {
                 await intakeService.UpdateStatusAsync(request.Id, RequestStatus.InReview);

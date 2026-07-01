@@ -1,12 +1,12 @@
 // Services/IIntakeService.cs
-using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Dtos;
+using ClinicIntakeApi.Models;
 
 namespace ClinicIntakeApi.Services;
 
 public interface IIntakeService
 {
-    Task<IntakeRequest> AddRequestAsync(string patientName);
+    Task<IntakeRequest> AddRequestAsync(string patientName, int clinicId);
 
     Task<IntakeRequest?> FindRequestByIdAsync(int id);
 

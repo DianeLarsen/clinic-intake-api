@@ -259,68 +259,60 @@ Still want more practice with:
 
 ### Completed
 
-* Learned ASP.NET Core validation using Data Annotations.
-* Added validation attributes to DTOs.
-* Learned the differences between validation in Controllers and Minimal APIs.
-* Built a reusable generic `ValidationFilter<T>` for Minimal APIs.
-* Removed endpoint-specific validation logic in favor of centralized validation.
-* Reorganized the Backend Engineering Handbook into a structured learning reference.
-* Added and expanded handbook chapters for:
-  * Repository Pattern
-  * Service Layer
-  * Dependency Flow
-  * Minimal APIs
-  * Filtering
-  * Searching
-  * Sorting
-  * Pagination
-  * API Responses
-  * Program.cs
-  * Configuration
-  * Swagger
+* Refactored the API to use asynchronous endpoint handlers throughout the application.
+* Implemented centralized request validation using a reusable generic `ValidationFilter<T>`.
+* Removed manual validation logic from endpoints.
+* Learned Entity Framework Core Change Tracking.
+* Documented the Entity Framework entity lifecycle and tracking states.
+* Expanded the Backend Engineering Handbook with chapters covering:
   * Validation
+  * Generics
   * Collections
   * Lambdas
   * LINQ
   * Nullable Reference Types
-  * Generics
-* Created README files for every handbook section and reorganized the project into a long-term reference guide.
+  * Program.cs
+  * Configuration
+  * Swagger
+  * Change Tracking
+* Reorganized the Backend Engineering Handbook into a long-term reference guide with section README files and improved navigation.
 
 ### Learned
 
-* Data Annotations
-* Validation pipeline
+* Entity Framework Change Tracking
+* Entity States
+  * Added
+  * Modified
+  * Deleted
+  * Unchanged
+* Detached vs Tracked entities
+* `AsNoTracking()`
 * Endpoint Filters
-* Separation of concerns
-* Nullable Reference Types
-* Lambda expressions
-* Collections
-* API architecture
-* Request processing pipeline
+* Data Annotations
+* Generic validation
+* Generic response objects
 
-Validation attributes learned:
+New EF Core methods learned:
 
-* `[Required]`
-* `[StringLength]`
-* `[MinLength]`
-* `[MaxLength]`
-* `[Range]`
-* `[EmailAddress]`
-* `[Phone]`
+* `AsNoTracking()`
+* `Update()`
+* `Attach()`
 
 ### Issues
 
-* Initially assumed Data Annotation attributes automatically validated requests in Minimal APIs.
-* Learned that Controllers automatically validate models, while Minimal APIs require explicit validation through Endpoint Filters or custom logic.
-* Needed to better understand where validation belongs within the application architecture.
+* Initially assumed changing a tracked object immediately updated the database.
+* Needed to understand that `SaveChangesAsync()` is the point where EF Core synchronizes in-memory objects with the database.
+* Clarified when `Update()` should and should not be used.
+* Learned that using `Update()` with partial DTOs can accidentally overwrite existing database values.
 
 ### Biggest Insights
 
-* Validation is not business logic. It belongs at the edge of the application before the service layer executes.
-* Data Annotations describe validation rules, but something else must enforce them.
-* Endpoint Filters in Minimal APIs serve a similar purpose to automatic model validation in Controllers.
-* DTOs define what valid input looks like, while services should assume they receive already validated data.
-* The more the project grows, the more valuable architectural separation becomes. Each layer should have one clear responsibility.
+* EF Core is not watching the database; it is watching the C# objects it loaded.
+* `SaveChangesAsync()` is a synchronization operation, not simply an update method.
+* Multiple changes to the same entity are combined into a single SQL statement.
+* Tracked entities automatically detect property changes, while detached entities must first be attached to the `DbContext`.
+* `AsNoTracking()` improves performance for read-only queries because EF Core skips building change-tracking information.
+* The safest update pattern for APIs is to load the existing entity, modify only the intended properties, and then call `SaveChangesAsync()`.
 
 ### Confidence
 
@@ -328,7 +320,7 @@ Validation attributes learned:
 
 Still want more practice with:
 
-* Endpoint Filters
-* Validation strategies
-* Entity Framework Core Change Tracking
-* Relationships between entities
+* Entity relationships
+* Navigation properties
+* Lazy vs Eager Loading
+* More advanced LINQ queries

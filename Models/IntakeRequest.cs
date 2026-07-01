@@ -8,6 +8,14 @@ public class IntakeRequest
 
     public RequestStatus Status { get; private set; } = RequestStatus.Submitted;
 
+    public int ClinicId { get; set; }
+
+    public Clinic? Clinic { get; set; }
+
+    public int PatientId { get; set; }
+
+    public Patient? Patient { get; set; }
+
     private IntakeRequest() { }
 
     public IntakeRequest(string patientName)

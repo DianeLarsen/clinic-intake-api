@@ -9,4 +9,7 @@ public class ClinicIntakeDbContext : DbContext
         : base(options) { }
 
     public DbSet<IntakeRequest> IntakeRequests => Set<IntakeRequest>();
+
+    public DbSet<Clinic> Clinics => Set<Clinic>();
+    public DbSet<Patient> Patients => Set<Patient>();
 }
