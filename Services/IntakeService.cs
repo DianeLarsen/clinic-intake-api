@@ -14,14 +14,22 @@ public class IntakeService : IIntakeService
         _repository = repository;
     }
 
-    public async Task<IntakeRequest> AddRequestAsync(string patientName, int clinicId)
+    public async Task<IntakeRequest> AddRequestAsync(
+        string patientName,
+        int clinicId,
+        int patientId
+    )
     {
         if (string.IsNullOrWhiteSpace(patientName))
         {
             throw new ArgumentException("Patient name is required.");
         }
 
-        IntakeRequest request = new IntakeRequest(patientName) { ClinicId = clinicId };
+        IntakeRequest request = new IntakeRequest(patientName)
+        {
+            ClinicId = clinicId,
+            PatientId = patientId,
+        };
 
         return await _repository.AddAsync(request);
     }

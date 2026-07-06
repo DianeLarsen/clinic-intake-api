@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Dtos;
-using ClinicIntakeApi.Filters;
+// using ClinicIntakeApi.Filters;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
@@ -27,6 +27,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 //
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
 
 //
 // Register Entity Framework Core.
@@ -79,37 +80,37 @@ app.UseHttpsRedirection();
 //
 // Returns a paged list of RequestSummaryDto.
 //
-app.MapGet(
-    "/requests",
-    async (
-        IIntakeService intakeService,
-        RequestStatus? status,
-        string? patient,
-        string? sort,
-        int page = 1,
-        int pageSize = 10
-    ) =>
-    {
-        return Results.Ok(
-            await intakeService.GetRequestSummariesAsync(status, patient, sort, page, pageSize)
-        );
-    }
-);
+// app.MapGet(
+//     "/requests",
+//     async (
+//         IIntakeService intakeService,
+//         RequestStatus? status,
+//         string? patient,
+//         string? sort,
+//         int page = 1,
+//         int pageSize = 10
+//     ) =>
+//     {
+//         return Results.Ok(
+//             await intakeService.GetRequestSummariesAsync(status, patient, sort, page, pageSize)
+//         );
+//     }
+// );
 
 //
 // GET /requests/{id}
 //
 // Returns one request by ID.
 //
-app.MapGet(
-    "/requests/{id}",
-    async (int id, IIntakeService intakeService) =>
-    {
-        IntakeRequest? request = await intakeService.FindRequestByIdAsync(id);
+// app.MapGet(
+//     "/requests/{id}",
+//     async (int id, IIntakeService intakeService) =>
+//     {
+//         IntakeRequest? request = await intakeService.FindRequestByIdAsync(id);
 
-        return request is not null ? Results.Ok(request) : Results.NotFound();
-    }
-);
+//         return request is not null ? Results.Ok(request) : Results.NotFound();
+//     }
+// );
 
 //
 // POST /requests
@@ -119,18 +120,18 @@ app.MapGet(
 // Validation happens BEFORE this endpoint executes
 // using the ValidationFilter below.
 //
-app.MapPost(
-        "/requests",
-        async (CreateRequestDto dto, IIntakeService intakeService) =>
-        {
-            IntakeRequest request = await intakeService.AddRequestAsync(dto.PatientName, 1);
+// app.MapPost(
+//         "/requests",
+//         async (CreateRequestDto dto, IIntakeService intakeService) =>
+//         {
+//             IntakeRequest request = await intakeService.AddRequestAsync(dto.PatientName, 1);
 
-            return Results.Created($"/requests/{request.Id}", request);
-        }
-    )
-    // Runs the generic validation filter.
-    // If validation fails, the endpoint never executes.
-    .AddEndpointFilter<ValidationFilter<CreateRequestDto>>();
+//             return Results.Created($"/requests/{request.Id}", request);
+//         }
+//     )
+//     // Runs the generic validation filter.
+//     // If validation fails, the endpoint never executes.
+//     .AddEndpointFilter<ValidationFilter<CreateRequestDto>>();
 
 //
 // PUT /requests/{id}/status
@@ -291,7 +292,8 @@ using (var scope = app.Services.CreateScope())
 
             IntakeRequest request = await intakeService.AddRequestAsync(
                 patient.FullName,
-                patient.ClinicId
+                patient.ClinicId,
+                patient.Id
             );
 
             // Connect the intake request to the patient.
@@ -314,6 +316,8 @@ using (var scope = app.Services.CreateScope())
         }
     }
 }
+
+app.MapControllers();
 
 //
 // Start listening for HTTP requests.

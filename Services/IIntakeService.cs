@@ -6,7 +6,7 @@ namespace ClinicIntakeApi.Services;
 
 public interface IIntakeService
 {
-    Task<IntakeRequest> AddRequestAsync(string patientName, int clinicId);
+    Task<IntakeRequest> AddRequestAsync(string patientName, int clinicId, int patientId);
 
     Task<IntakeRequest?> FindRequestByIdAsync(int id);
 
