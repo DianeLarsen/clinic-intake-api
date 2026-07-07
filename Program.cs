@@ -166,16 +166,11 @@ app.MapDelete(
 //
 // Development Seed / Backfill Data
 //
-// This block does two jobs:
+// This block creates sample clinics, patients, and intake requests
+// for local development.
 //
-// 1. If the database is brand new, it creates sample clinics,
-//    patients, and intake requests.
-//
-// 2. If the database already exists but has missing relationship data,
-//    it repairs/backfills that data.
-//
-// This is closer to a real migration mindset than deleting the database
-// every time the model changes. Tiny mercy from the database goblin.
+// Clinics are created first because patients require a valid ClinicId.
+// Patients are created next because intake requests require a valid PatientId.
 //
 using (var scope = app.Services.CreateScope())
 {
@@ -205,31 +200,47 @@ using (var scope = app.Services.CreateScope())
     Clinic[] clinics = db.Clinics.ToArray();
 
     //
-    // Sample patient names used for development data.
+    // Sample patient identity data used for development.
     //
-    string[] names =
-    [
-        "Alice",
-        "Bob",
-        "Charlie",
-        "Diane",
-        "Emma",
-        "Frank",
-        "Grace",
-        "Henry",
-        "Isabella",
-        "Jack",
-        "Karen",
-        "Liam",
-        "Mia",
-        "Noah",
-        "Olivia",
-        "Patrick",
-        "Quinn",
-        "Ryan",
-        "Sophia",
-        "Tyler",
-    ];
+    var patientSeeds = new[]
+    {
+        new
+        {
+            FirstName = "Alice",
+            LastName = "Johnson",
+            DateOfBirth = new DateOnly(1984, 3, 12),
+        },
+        new
+        {
+            FirstName = "Bob",
+            LastName = "Smith",
+            DateOfBirth = new DateOnly(1979, 7, 22),
+        },
+        new
+        {
+            FirstName = "Charlie",
+            LastName = "Brown",
+            DateOfBirth = new DateOnly(1991, 11, 5),
+        },
+        new
+        {
+            FirstName = "Diane",
+            LastName = "Larsen",
+            DateOfBirth = new DateOnly(1978, 6, 14),
+        },
+        new
+        {
+            FirstName = "Emma",
+            LastName = "Davis",
+            DateOfBirth = new DateOnly(2002, 5, 9),
+        },
+        new
+        {
+            FirstName = "Frank",
+            LastName = "Miller",
+            DateOfBirth = new DateOnly(1968, 12, 1),
+        },
+    };
 
     //
     // Ensure default patients exist.
@@ -239,10 +250,18 @@ using (var scope = app.Services.CreateScope())
     //
     if (!db.Patients.Any())
     {
-        Patient[] patientsToCreate = names
+        Patient[] patientsToCreate = patientSeeds
             .Select(
-                (name, index) =>
-                    new Patient { FullName = name, ClinicId = clinics[index % clinics.Length].Id }
+                (patient, index) =>
+                    new Patient
+                    {
+                        FirstName = patient.FirstName,
+                        LastName = patient.LastName,
+                        DateOfBirth = patient.DateOfBirth,
+
+                        // Rotate patients across available clinics.
+                        ClinicId = clinics[index % clinics.Length].Id,
+                    }
             )
             .ToArray();
 
@@ -251,33 +270,12 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
 
-    // Load patients from the database after ensuring they exist.
-    // This array is used for both backfill logic and sample request creation.
+    //
+    // Load patients after ensuring they exist.
+    //
+    // These are used to create sample intake requests.
+    //
     Patient[] patients = db.Patients.ToArray();
-
-    // //
-    // // Backfill existing requests that do not have a PatientId.
-    // //
-    // // This handles older rows created before the Patient relationship existed.
-    // // Instead of deleting the database, we assign each old request to an
-    // // existing patient and keep ClinicId consistent with that patient's clinic.
-    // //
-    // int backfillIndex = 0;
-
-    // foreach (IntakeRequest request in existingRequests)
-    // {
-    //     if (request.PatientId is null)
-    //     {
-    //         Patient patient = patients[backfillIndex % patients.Length];
-
-    //         request.PatientId = patient.Id;
-    //         request.ClinicId = patient.ClinicId;
-
-    //         backfillIndex++;
-    //     }
-    // }
-
-    await db.SaveChangesAsync();
 
     //
     // If there are no requests at all, create sample intake requests.
@@ -290,16 +288,12 @@ using (var scope = app.Services.CreateScope())
         {
             Patient patient = patients[i];
 
-            IntakeRequest request = await intakeService.AddRequestAsync(
-                patient.FullName,
-                patient.ClinicId,
-                patient.Id
-            );
+            IntakeRequest? request = await intakeService.AddRequestAsync(patient.Id);
 
-            // Connect the intake request to the patient.
-            request.PatientId = patient.Id;
-
-            await db.SaveChangesAsync();
+            if (request is null)
+            {
+                continue;
+            }
 
             //
             // Give some requests different statuses

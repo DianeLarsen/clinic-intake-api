@@ -1,10 +1,9 @@
-namespace ClinicIntakeApi.Dtos;
-
 using System.ComponentModel.DataAnnotations;
+
+namespace ClinicIntakeApi.Dtos;
 
 public class CreateRequestDto
 {
     [Required]
-    [StringLength(100)]
-    public string PatientName { get; set; } = "";
+    public int PatientId { get; set; }
 }

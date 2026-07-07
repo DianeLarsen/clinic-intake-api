@@ -4,16 +4,20 @@ public class Patient
 {
     public int Id { get; set; }
 
-    public string FullName { get; set; } = "";
+    public string FirstName { get; set; } = "";
 
-    // Required relationship:
-    // every patient belongs to one clinic.
+    public string LastName { get; set; } = "";
+
+    public DateOnly DateOfBirth { get; set; }
+
     public int ClinicId { get; set; }
 
-    // Navigation property:
-    // lets C# access patient.Clinic.
     public Clinic? Clinic { get; set; }
 
-    // One patient can have many intake requests.
     public List<IntakeRequest> IntakeRequests { get; set; } = [];
+
+    public string GetFullName()
+    {
+        return $"{FirstName} {LastName}";
+    }
 }

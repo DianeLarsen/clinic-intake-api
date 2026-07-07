@@ -7,6 +7,26 @@ public class InMemoryIntakeRepository : IIntakeRepository
 {
     private readonly List<IntakeRequest> _requests = [];
 
+    private readonly List<Patient> _patients =
+    [
+        new Patient
+        {
+            Id = 1,
+            FirstName = "Alice",
+            LastName = "Johnson",
+            DateOfBirth = new DateOnly(1984, 3, 12),
+            ClinicId = 1,
+        },
+        new Patient
+        {
+            Id = 2,
+            FirstName = "Bob",
+            LastName = "Smith",
+            DateOfBirth = new DateOnly(1979, 7, 22),
+            ClinicId = 1,
+        },
+    ];
+
     public async Task<IntakeRequest> AddAsync(IntakeRequest request)
     {
         _requests.Add(request);
@@ -33,5 +53,12 @@ public class InMemoryIntakeRepository : IIntakeRepository
         }
 
         return await Task.FromResult(_requests.Remove(request));
+    }
+
+    public Task<Patient?> GetPatientByIdAsync(int patientId)
+    {
+        Patient? patient = _patients.FirstOrDefault(p => p.Id == patientId);
+
+        return Task.FromResult(patient);
     }
 }

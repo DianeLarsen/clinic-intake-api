@@ -14,21 +14,19 @@ public class IntakeService : IIntakeService
         _repository = repository;
     }
 
-    public async Task<IntakeRequest> AddRequestAsync(
-        string patientName,
-        int clinicId,
-        int patientId
-    )
+    public async Task<IntakeRequest?> AddRequestAsync(int patientId)
     {
-        if (string.IsNullOrWhiteSpace(patientName))
+        Patient? patient = await _repository.GetPatientByIdAsync(patientId);
+
+        if (patient is null)
         {
-            throw new ArgumentException("Patient name is required.");
+            return null;
         }
 
-        IntakeRequest request = new IntakeRequest(patientName)
+        IntakeRequest request = new IntakeRequest(patient.GetFullName())
         {
-            ClinicId = clinicId,
-            PatientId = patientId,
+            PatientId = patient.Id,
+            ClinicId = patient.ClinicId,
         };
 
         return await _repository.AddAsync(request);
@@ -115,15 +113,20 @@ public class IntakeService : IIntakeService
         IEnumerable<RequestSummaryDto> items = requests
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(r => new RequestSummaryDto
+            .Select(r =>
             {
-                Id = r.Id,
-                PatientName = r.Patient?.FullName ?? r.PatientName,
-                ClinicName = r.Clinic?.Name ?? "Unknown Clinic",
-                DisplayText =
-                    $"{r.Patient?.FullName ?? r.PatientName} - {r.Status} - {r.Clinic?.Name ?? "Unknown Clinic"}",
-            });
+                string patientName = r.Patient?.GetFullName() ?? r.PatientName;
 
+                string clinicName = r.Clinic?.Name ?? "Unknown Clinic";
+
+                return new RequestSummaryDto
+                {
+                    Id = r.Id,
+                    PatientName = patientName,
+                    ClinicName = clinicName,
+                    DisplayText = $"{patientName} - {r.Status} - {clinicName}",
+                };
+            });
         return new PagedResponse<RequestSummaryDto>
         {
             Page = page,

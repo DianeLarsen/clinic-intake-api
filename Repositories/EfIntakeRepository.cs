@@ -1,6 +1,7 @@
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Models;
 using Microsoft.EntityFrameworkCore;
+
 namespace ClinicIntakeApi.Repositories;
 
 public class EfIntakeRepository : IIntakeRepository
@@ -11,6 +12,8 @@ public class EfIntakeRepository : IIntakeRepository
     {
         _db = db;
     }
+
+    
 
     public async Task<IntakeRequest> AddAsync(IntakeRequest request)
     {
@@ -46,5 +49,10 @@ public class EfIntakeRepository : IIntakeRepository
         await _db.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<Patient?> GetPatientByIdAsync(int patientId)
+    {
+        return await _db.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
     }
 }

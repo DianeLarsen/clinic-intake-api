@@ -150,7 +150,12 @@ public class RequestsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateRequestDto dto)
     {
-        IntakeRequest request = await _intakeService.AddRequestAsync(dto.PatientName, 1, 1);
+        IntakeRequest? request = await _intakeService.AddRequestAsync(dto.PatientId);
+
+        if (request is null)
+        {
+            return BadRequest($"Patient with ID {dto.PatientId} does not exist.");
+        }
 
         return Created($"/requests/{request.Id}", request);
     }
