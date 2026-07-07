@@ -1,12 +1,12 @@
 // Services/IIntakeService.cs
-using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Dtos;
+using ClinicIntakeApi.Models;
 
 namespace ClinicIntakeApi.Services;
 
 public interface IIntakeService
 {
-    Task<IntakeRequest> AddRequestAsync(string patientName);
+    Task<IntakeRequest?> AddRequestAsync(int patientId);
 
     Task<IntakeRequest?> FindRequestByIdAsync(int id);
 
@@ -18,17 +18,9 @@ public interface IIntakeService
 
     Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync();
 
-    Task<IEnumerable<IntakeRequest>> GetRequestsAsync(
-        RequestStatus? status,
-        string? patient,
-        string? sort,
-        int page,
-        int pageSize
-    );
-
     Task<bool> DeleteRequestAsync(int id);
 
-    Task<IEnumerable<RequestSummaryDto>> GetRequestSummariesAsync(
+    Task<PagedResponse<RequestSummaryDto>> GetRequestSummariesAsync(
         RequestStatus? status,
         string? patient,
         string? sort,

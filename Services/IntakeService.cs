@@ -14,14 +14,16 @@ public class IntakeService : IIntakeService
         _repository = repository;
     }
 
-    public async Task<IntakeRequest> AddRequestAsync(string patientName)
+    public async Task<IntakeRequest?> AddRequestAsync(int patientId)
     {
-        if (string.IsNullOrWhiteSpace(patientName))
+        Patient? patient = await _repository.GetPatientByIdAsync(patientId);
+
+        if (patient is null)
         {
-            throw new ArgumentException("Patient name is required.");
+            return null;
         }
 
-        IntakeRequest request = new IntakeRequest(patientName);
+        IntakeRequest request = new() { PatientId = patient.Id, ClinicId = patient.ClinicId };
 
         return await _repository.AddAsync(request);
     }
@@ -57,47 +59,41 @@ public class IntakeService : IIntakeService
         return requests.Where(request => request.Status == RequestStatus.Completed);
     }
 
-    public async Task<IEnumerable<IntakeRequest>> GetRequestsAsync(
+    private async Task<IEnumerable<IntakeRequest>> BuildRequestQueryAsync(
         RequestStatus? status,
         string? patient,
-        string? sort,
-        int page,
-        int pageSize
+        string? sort
     )
     {
         IEnumerable<IntakeRequest> requests = await _repository.GetAllAsync();
 
-        // Filter by status
         if (status is not null)
         {
             requests = requests.Where(r => r.Status == status.Value);
         }
 
-        // Filter by patient name
         if (!string.IsNullOrWhiteSpace(patient))
         {
             requests = requests.Where(r =>
-                r.PatientName.Contains(patient, StringComparison.OrdinalIgnoreCase)
+                r.Patient is not null
+                && r.Patient.GetFullName().Contains(patient, StringComparison.OrdinalIgnoreCase)
             );
         }
 
-        // Sort
         if (sort == "name")
         {
-            requests = requests.OrderBy(r => r.PatientName);
+            requests = requests.OrderBy(r => r.Patient?.GetFullName());
         }
 
         if (sort == "name_desc")
         {
-            requests = requests.OrderByDescending(r => r.PatientName);
+            requests = requests.OrderByDescending(r => r.Patient?.GetFullName());
         }
-
-        requests = requests.Skip((page - 1) * pageSize).Take(pageSize);
 
         return requests;
     }
 
-    public async Task<IEnumerable<RequestSummaryDto>> GetRequestSummariesAsync(
+    public async Task<PagedResponse<RequestSummaryDto>> GetRequestSummariesAsync(
         RequestStatus? status,
         string? patient,
         string? sort,
@@ -105,19 +101,37 @@ public class IntakeService : IIntakeService
         int pageSize
     )
     {
-        IEnumerable<IntakeRequest> requests = await GetRequestsAsync(
-            status,
-            patient,
-            sort,
-            page,
-            pageSize
-        );
+        IEnumerable<IntakeRequest> requests = await BuildRequestQueryAsync(status, patient, sort);
 
-        return requests.Select(r => new RequestSummaryDto
+        int totalCount = requests.Count();
+
+        int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        IEnumerable<RequestSummaryDto> items = requests
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r =>
+            {
+                string patientName = r.Patient?.GetFullName() ?? "Unknown Patient";
+
+                string clinicName = r.Clinic?.Name ?? "Unknown Clinic";
+
+                return new RequestSummaryDto
+                {
+                    Id = r.Id,
+                    PatientName = patientName,
+                    ClinicName = clinicName,
+                    DisplayText = $"{patientName} - {r.Status} - {clinicName}",
+                };
+            });
+        return new PagedResponse<RequestSummaryDto>
         {
-            Id = r.Id,
-            DisplayText = $"{r.PatientName} - {r.Status}",
-        });
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages,
+            Items = items,
+        };
     }
 
     public async Task<bool> DeleteRequestAsync(int id)
