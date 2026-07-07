@@ -23,11 +23,7 @@ public class IntakeService : IIntakeService
             return null;
         }
 
-        IntakeRequest request = new IntakeRequest(patient.GetFullName())
-        {
-            PatientId = patient.Id,
-            ClinicId = patient.ClinicId,
-        };
+        IntakeRequest request = new() { PatientId = patient.Id, ClinicId = patient.ClinicId };
 
         return await _repository.AddAsync(request);
     }
@@ -79,18 +75,19 @@ public class IntakeService : IIntakeService
         if (!string.IsNullOrWhiteSpace(patient))
         {
             requests = requests.Where(r =>
-                r.PatientName.Contains(patient, StringComparison.OrdinalIgnoreCase)
+                r.Patient is not null
+                && r.Patient.GetFullName().Contains(patient, StringComparison.OrdinalIgnoreCase)
             );
         }
 
         if (sort == "name")
         {
-            requests = requests.OrderBy(r => r.PatientName);
+            requests = requests.OrderBy(r => r.Patient?.GetFullName());
         }
 
         if (sort == "name_desc")
         {
-            requests = requests.OrderByDescending(r => r.PatientName);
+            requests = requests.OrderByDescending(r => r.Patient?.GetFullName());
         }
 
         return requests;
@@ -115,7 +112,7 @@ public class IntakeService : IIntakeService
             .Take(pageSize)
             .Select(r =>
             {
-                string patientName = r.Patient?.GetFullName() ?? r.PatientName;
+                string patientName = r.Patient?.GetFullName() ?? "Unknown Patient";
 
                 string clinicName = r.Clinic?.Name ?? "Unknown Clinic";
 

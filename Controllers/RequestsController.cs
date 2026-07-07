@@ -159,4 +159,30 @@ public class RequestsController : ControllerBase
 
         return Created($"/requests/{request.Id}", request);
     }
+
+    //
+    // PUT /requests/{id}/status
+    //
+    // Updates the status of an existing intake request.
+    //
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, UpdateRequestStatusDto dto)
+    {
+        bool updated = await _intakeService.UpdateStatusAsync(id, dto.Status);
+
+        return updated ? NoContent() : NotFound();
+    }
+
+    //
+    // DELETE /requests/{id}
+    //
+    // Deletes an intake request.
+    //
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        bool deleted = await _intakeService.DeleteRequestAsync(id);
+
+        return deleted ? NoContent() : NotFound();
+    }
 }

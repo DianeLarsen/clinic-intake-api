@@ -324,3 +324,156 @@ Still want more practice with:
 * Navigation properties
 * Lazy vs Eager Loading
 * More advanced LINQ queries
+
+
+---
+
+# 2026-07-01
+
+## Completed
+
+* Completed the Entity Framework Core learning section.
+* Added one-to-many relationships between:
+
+  * Clinics
+  * Patients
+  * Intake Requests
+* Added navigation properties and foreign keys to the domain models.
+* Refactored development seed data to create related entities in the correct order.
+* Learned how to safely evolve an existing database schema using EF Core migrations.
+* Converted `PatientId` from nullable to required after backfilling existing data.
+* Updated request queries to include related patient and clinic information.
+* Refactored DTO projection to use navigation properties instead of duplicated data.
+* Expanded the Backend Engineering Handbook with chapters covering:
+
+  * Relationships
+  * Lazy vs Eager Loading
+  * EF Core Performance
+* Improved project documentation including the GitHub README and architecture overview.
+
+## Learned
+
+* One-to-many relationships
+* Foreign keys
+* Navigation properties
+* Required vs optional relationships
+* Eager Loading
+* Lazy Loading
+* Explicit Loading
+* `Include()`
+* `ThenInclude()`
+* Object graphs
+* N+1 query problem
+* Query performance
+* Database normalization
+* Relationship migrations
+* Backfilling existing data before enforcing constraints
+
+New EF Core methods learned:
+
+* `Include()`
+* `ThenInclude()`
+
+## Issues
+
+* Initially attempted to make `PatientId` required before existing records had been backfilled.
+* Learned that adding required relationships to existing databases requires a staged migration:
+
+  * Add nullable relationship
+  * Populate existing data
+  * Change to required
+* Accidentally created foreign key violations while refactoring the seed data.
+* Realized that navigation properties may still be `null` even when the database relationship exists because related entities are not automatically loaded.
+
+## Biggest Insights
+
+* Foreign keys represent relationships in the database while navigation properties represent relationships in C# objects.
+* The database stores IDs; Entity Framework turns those IDs into connected objects.
+* Good relational design removes duplicated information instead of copying data across tables.
+* Loading related data is a separate decision from defining relationships.
+* Query performance depends more on retrieving only the data needed than on writing clever code.
+* Production schema changes should preserve existing data instead of rebuilding the database.
+
+## Confidence
+
+⭐⭐⭐⭐☆ (4/5)
+
+Still want more practice with:
+
+* Complex LINQ queries
+* Many-to-many relationships
+* Performance optimization
+* More advanced Entity Framework querying
+
+---
+
+# 2026-07-07
+
+## Completed
+
+* Began converting the Clinic Intake API from Minimal APIs to ASP.NET Controllers using a dedicated Git feature branch.
+* Created the first `RequestsController`.
+* Migrated the initial GET and POST endpoints from `Program.cs` into controller actions.
+* Registered controllers within the ASP.NET application.
+* Learned professional Git feature branch workflows including pushing branches with upstream tracking.
+* Refactored the domain model to better reflect a real healthcare intake workflow.
+* Replaced `Patient.FullName` with:
+
+  * FirstName
+  * LastName
+  * DateOfBirth
+* Changed intake creation to reference existing patients using `PatientId` instead of creating requests from free-form patient names.
+* Updated development seed data to support the new patient model.
+* Refactored DTOs, services, repositories, and queries to use normalized patient information.
+
+## Learned
+
+* ASP.NET Controllers
+* Controller routing
+* `[ApiController]`
+* `[Route]`
+* `[HttpGet]`
+* `[HttpPost]`
+* `ControllerBase`
+* `IActionResult`
+* Constructor Dependency Injection in Controllers
+* Feature branch Git workflow
+* Domain-driven modeling
+* Database normalization
+
+New ASP.NET concepts learned:
+
+* `AddControllers()`
+* `MapControllers()`
+* `Ok()`
+* `Created()`
+* `NotFound()`
+
+## Issues
+
+* Initially duplicated endpoints by leaving Minimal API routes active while adding controller actions.
+* Encountered foreign key violations after making `PatientId` required before updating the intake creation workflow.
+* Realized the original API design allowed intake requests to be created from only a patient name, which does not accurately model a healthcare intake process.
+
+## Biggest Insights
+
+* Controllers replace the HTTP entry point, not the application's architecture. The Service Layer, Repository Pattern, and Entity Framework remain unchanged.
+* Good software models the business domain instead of taking shortcuts that are merely convenient to code.
+* An intake request should reference an existing patient rather than creating a relationship from a name string.
+* Professional Git workflows use feature branches to isolate work and keep the main branch stable.
+* A well-designed architecture allows major framework changes, such as moving from Minimal APIs to Controllers, with very little impact on the business logic.
+
+## Confidence
+
+⭐⭐⭐⭐☆ (4/5)
+
+Still want more practice with:
+
+* Controller routing
+* Model binding
+* Middleware
+* Request lifecycle
+* Controller validation
+* Converting the remaining endpoints to Controllers
+
+
