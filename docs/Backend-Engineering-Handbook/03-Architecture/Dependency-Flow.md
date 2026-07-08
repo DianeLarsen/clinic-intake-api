@@ -297,3 +297,21 @@ Dependency flow shows how requests move through the application and keeps each l
 
 ```
 ```
+Minimal API flow with Middleware:
+
+HTTP Request
+      │
+      ▼
+Middleware
+      ▼
+Routing
+      ▼
+Controller
+      ▼
+Service
+      ▼
+Repository
+      ▼
+DbContext
+      ▼
+SQLite

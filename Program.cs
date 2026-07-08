@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using ClinicIntakeApi.Data;
+using ClinicIntakeApi.Middleware;
 using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+//
+// Log every incoming request and outgoing response.
+//
+app.UseRequestLogging();
 
 //
 // Redirect HTTP requests to HTTPS.

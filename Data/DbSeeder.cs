@@ -1,6 +1,5 @@
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ClinicIntakeApi.Data;
 

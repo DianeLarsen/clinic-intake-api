@@ -13,8 +13,6 @@ public class EfIntakeRepository : IIntakeRepository
         _db = db;
     }
 
-    
-
     public async Task<IntakeRequest> AddAsync(IntakeRequest request)
     {
         _db.IntakeRequests.Add(request);
