@@ -185,4 +185,11 @@ public class RequestsController : ControllerBase
 
         return deleted ? NoContent() : NotFound();
     }
+
+    // to test exception handling middleware
+    [HttpGet("error")]
+    public IActionResult Error()
+    {
+        throw new Exception("This is a test exception.");
+    }
 }

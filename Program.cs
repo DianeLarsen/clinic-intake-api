@@ -62,19 +62,24 @@ if (app.Environment.IsDevelopment())
 }
 
 //
-// Log every incoming request and outgoing response.
+// Seed development data.
 //
-app.UseRequestLogging();
+await DbSeeder.SeedAsync(app.Services);
 
 //
 // Redirect HTTP requests to HTTPS.
 //
 app.UseHttpsRedirection();
 
+app.UseExceptionHandling();
+
 //
-// Seed development data.
+// Log every incoming request and outgoing response.
 //
-await DbSeeder.SeedAsync(app.Services);
+app.UseRequestLogging();
+
+// app.UseFirstMiddleware();
+// app.UseSecondMiddleware();
 
 app.MapControllers();
 

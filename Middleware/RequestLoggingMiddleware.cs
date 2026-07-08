@@ -65,7 +65,7 @@ public class RequestLoggingMiddleware
         //
         // --> GET /requests
         //
-        Console.WriteLine("Before Controller");
+        Console.WriteLine("RequestLoggingMiddleware: before next");
         Console.WriteLine($"--> {context.Request.Method} {context.Request.Path}");
 
         //
@@ -91,6 +91,6 @@ public class RequestLoggingMiddleware
         // <-- 200
         //
         Console.WriteLine($"<-- {context.Response.StatusCode}");
-        Console.WriteLine("After Controller");
+        Console.WriteLine("RequestLoggingMiddleware: after next");
     }
 }
