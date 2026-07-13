@@ -379,3 +379,38 @@ Change Tracking allows Entity Framework Core to automatically detect changes to 
 - Service Layer
 - Dependency Injection
 - LINQ and EF Core
+
+## What is tracking?
+
+Entity Framework remembers objects that it loads from the database.
+
+Example:
+
+```csharp
+IntakeRequest request =
+    await db.IntakeRequests.FirstAsync();
+
+EF keeps track of changes:
+
+request.UpdateStatus(
+    RequestStatus.Completed
+);
+
+await db.SaveChangesAsync();
+
+Without SaveChangesAsync(), the database is not updated.
+
+AsNoTracking()
+
+AsNoTracking() tells EF not to remember the object.
+
+var patient = await db.Patients
+    .AsNoTracking()
+    .FirstAsync();
+
+Use AsNoTracking() when:
+
+Reading data only
+Running reports
+Writing tests
+Improving performance

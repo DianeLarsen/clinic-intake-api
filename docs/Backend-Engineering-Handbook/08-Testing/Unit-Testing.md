@@ -164,3 +164,25 @@ AddRequestAsync_WhenPatientExists_ReturnsNewRequest
 
 UpdateStatusAsync_WhenRequestDoesNotExist_ReturnsFalse
 ```
+
+
+```md
+## Real objects vs mocked objects
+
+Unit tests often create real model objects:
+
+```csharp
+var patient = new Patient
+{
+    Id = 1,
+    FirstName = "Diane"
+};
+
+Models are simple data containers and usually do not need to be mocked.
+
+Dependencies such as repositories are mocked because they access external systems like databases.
+
+Example:
+
+var repositoryMock =
+    new Mock<IIntakeRepository>();

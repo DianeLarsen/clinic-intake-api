@@ -169,3 +169,41 @@ Patient
 IntakeRequest
 DTOs
 ```
+
+
+## Setup vs ReturnsAsync
+
+`.Setup()` defines which method call is being intercepted.
+
+```csharp
+repositoryMock
+    .Setup(r => r.GetByIdAsync(123))
+
+
+.ReturnsAsync() defines what value should be returned.
+
+.ReturnsAsync(request);
+
+Together:
+
+repositoryMock
+    .Setup(r => r.GetByIdAsync(123))
+    .ReturnsAsync(request);
+
+means:
+
+"When someone asks for request 123, return this request."
+
+
+And add:
+
+```md
+## Verify
+
+`Verify()` checks that a method was called.
+
+```csharp
+repositoryMock.Verify(
+    repository => repository.UpdateAsync(request),
+    Times.Once
+);

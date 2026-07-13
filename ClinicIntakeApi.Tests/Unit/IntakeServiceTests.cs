@@ -3,7 +3,7 @@ using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
 using Moq;
 
-namespace ClinicIntakeApi.Tests;
+namespace ClinicIntakeApi.Tests.Unit;
 
 public class IntakeServiceTests
 {
@@ -125,7 +125,12 @@ public class IntakeServiceTests
         // return this request."
         repositoryMock.Setup(repository => repository.GetByIdAsync(123)).ReturnsAsync(request);
 
-        // Create the service.
+        // Teach the fake repository:
+        // "When this request is saved,
+        // pretend the save worked and return true."
+        repositoryMock.Setup(repository => repository.UpdateAsync(request)).ReturnsAsync(true);
+
+        // Create the real service using the fake repository.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
@@ -134,9 +139,15 @@ public class IntakeServiceTests
 
         // Assert
 
+        // The service should report that the update worked.
         Assert.True(result);
 
+        // The request's status should now be Completed.
         Assert.Equal(RequestStatus.Completed, request.Status);
+
+        // Check that the service asked the repository
+        // to save the request exactly one time.
+        repositoryMock.Verify(repository => repository.UpdateAsync(request), Times.Once);
     }
 
     [Fact]

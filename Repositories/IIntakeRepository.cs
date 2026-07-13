@@ -11,6 +11,8 @@ public interface IIntakeRepository
 
     Task<IntakeRequest?> GetByIdAsync(int id);
 
+    Task<bool> UpdateAsync(IntakeRequest request);
+
     Task<bool> DeleteAsync(int id);
 
     Task<Patient?> GetPatientByIdAsync(int patientId);
