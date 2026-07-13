@@ -14,18 +14,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Converts enums like RequestStatus.Submitted into
 // "Submitted" instead of 0.
 //
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
-
-//
 // Register Swagger/OpenAPI services.
 // These generate interactive API documentation.
 //
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 //
 // Register Entity Framework Core.
@@ -69,7 +68,10 @@ await DbSeeder.SeedAsync(app.Services);
 //
 // Redirect HTTP requests to HTTPS.
 //
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseExceptionHandling();
 
@@ -89,3 +91,5 @@ app.MapControllers();
 // Nothing happens until app.Run() is called.
 //
 app.Run();
+
+public partial class Program { }

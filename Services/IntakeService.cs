@@ -37,9 +37,14 @@ public class IntakeService : IIntakeService
     {
         IntakeRequest? request = await FindRequestByIdAsync(id);
 
-        request?.UpdateStatus(status);
+        if (request is null)
+        {
+            return false;
+        }
 
-        return request is not null;
+        request.UpdateStatus(status);
+
+        return await _repository.UpdateAsync(request);
     }
 
     public async Task<int> GetRequestCountAsync()

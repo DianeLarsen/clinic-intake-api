@@ -43,6 +43,13 @@ public class InMemoryIntakeRepository : IIntakeRepository
         return await Task.FromResult(_requests.FirstOrDefault(r => r.Id == id));
     }
 
+    public async Task<bool> UpdateAsync(IntakeRequest request)
+    {
+        // In-memory repository doesn't have a real database,
+        // so we just pretend the update worked.
+        return await Task.FromResult(true);
+    }
+
     public async Task<bool> DeleteAsync(int id)
     {
         IntakeRequest? request = await GetByIdAsync(id);

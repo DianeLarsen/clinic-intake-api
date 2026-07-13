@@ -494,3 +494,51 @@ Controllers organize related HTTP endpoints into classes while keeping business 
 - DTOs
 - Service Layer
 - API Responses
+
+## Controllers should return DTOs
+
+Avoid returning Entity Framework models directly.
+
+Bad:
+
+```csharp
+return Created(
+    $"/requests/{request.Id}",
+    request
+);
+
+better:
+
+return Created(
+    $"/requests/{request.Id}",
+    new IntakeRequestResponseDto
+    {
+        Id = request.Id,
+        PatientId = request.PatientId,
+        ClinicId = request.ClinicId,
+        Status = request.Status
+    }
+);
+
+Returning EF models directly can:
+
+Expose internal fields
+Create circular references
+Couple the API to the database structure
+
+That last one is particularly important because your integration test accidentally discovered a classic backend bug:
+
+```text
+Request
+    ↓
+Patient
+    ↓
+Requests
+    ↓
+Patient
+    ↓
+Requests
+    ↓
+∞
+
+which is less an object model and more an existential crisis for the JSON serializer.

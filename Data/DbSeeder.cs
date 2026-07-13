@@ -19,6 +19,12 @@ public static class DbSeeder
     {
         using IServiceScope scope = services.CreateScope();
 
+        // Get the database context.
+        var dbContext = scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+        // Create the database and tables if they do not exist.
+        await dbContext.Database.EnsureCreatedAsync();
+
         IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
 
         ClinicIntakeDbContext db =

@@ -34,6 +34,13 @@ public class EfIntakeRepository : IIntakeRepository
         return await _db.IntakeRequests.FirstOrDefaultAsync(r => r.Id == id);
     }
 
+    public async Task<bool> UpdateAsync(IntakeRequest request)
+    {
+        await _db.SaveChangesAsync();
+
+        return true;
+    }
+
     public async Task<bool> DeleteAsync(int id)
     {
         IntakeRequest? request = await GetByIdAsync(id);

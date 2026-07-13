@@ -157,7 +157,15 @@ public class RequestsController : ControllerBase
             return BadRequest($"Patient with ID {dto.PatientId} does not exist.");
         }
 
-        return Created($"/requests/{request.Id}", request);
+        var response = new IntakeRequestResponseDto
+        {
+            Id = request.Id,
+            PatientId = request.PatientId,
+            ClinicId = request.ClinicId,
+            Status = request.Status,
+        };
+
+        return Created($"/requests/{request.Id}", response);
     }
 
     //
@@ -168,6 +176,7 @@ public class RequestsController : ControllerBase
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateStatus(int id, UpdateRequestStatusDto dto)
     {
+        Console.WriteLine($"Received request to update status of request {id} to {dto.Status}");
         bool updated = await _intakeService.UpdateStatusAsync(id, dto.Status);
 
         return updated ? NoContent() : NotFound();
