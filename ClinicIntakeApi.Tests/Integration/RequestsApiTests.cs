@@ -11,12 +11,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ClinicIntakeApi.Tests.Integration;
 
-public class RequestsApiTests : IClassFixture<WebApplicationFactory<Program>>
+public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
-    public RequestsApiTests(WebApplicationFactory<Program> factory)
+    public RequestsApiTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = factory.CreateClient();
@@ -94,6 +94,12 @@ public class RequestsApiTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.NotNull(createdRequest);
         Assert.Equal(patientId, createdRequest.PatientId);
         Assert.Equal(clinicId, createdRequest.ClinicId);
+
+        HttpResponseMessage deleteResponse = await _client.DeleteAsync(
+            $"/requests/{createdRequest.Id}"
+        );
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
     }
 
     [Fact]
@@ -188,5 +194,89 @@ public class RequestsApiTests : IClassFixture<WebApplicationFactory<Program>>
         // Verify that SQLite now stores Completed.
         //
         Assert.Equal(RequestStatus.Completed, savedStatus);
+    }
+
+    [Fact]
+    public async Task DeleteRequest_WhenRequestExists_RemovesRequest()
+    {
+        // Arrange
+
+        int patientId;
+
+        // Open the database only long enough to read a valid patient ID.
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            patientId = await db
+                .Patients.AsNoTracking()
+                .OrderBy(patient => patient.Id)
+                .Select(patient => patient.Id)
+                .FirstAsync();
+        }
+
+        // Create a request that belongs only to this test.
+        var dto = new CreateRequestDto { PatientId = patientId };
+
+        HttpResponseMessage createResponse = await _client.PostAsJsonAsync("/requests", dto);
+
+        string createResponseBody = await createResponse.Content.ReadAsStringAsync();
+
+        Assert.True(
+            createResponse.StatusCode == HttpStatusCode.Created,
+            $"Expected 201 Created, but received "
+                + $"{(int)createResponse.StatusCode} {createResponse.StatusCode}. "
+                + $"Response body: {createResponseBody}"
+        );
+
+        IntakeRequestResponseDto? createdRequest =
+            await createResponse.Content.ReadFromJsonAsync<IntakeRequestResponseDto>(JsonOptions);
+
+        Assert.NotNull(createdRequest);
+
+        // Act
+
+        // Delete the exact request this test created.
+        HttpResponseMessage deleteResponse = await _client.DeleteAsync(
+            $"/requests/{createdRequest.Id}"
+        );
+
+        // Assert
+
+        // The API should report a successful delete.
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        // Open a new database scope so we read fresh data.
+        using IServiceScope assertScope = _factory.Services.CreateScope();
+
+        ClinicIntakeDbContext assertDb =
+            assertScope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+        bool requestStillExists = await assertDb
+            .IntakeRequests.AsNoTracking()
+            .AnyAsync(request => request.Id == createdRequest.Id);
+
+        // The request should no longer exist in SQLite.
+        Assert.False(requestStillExists);
+    }
+
+    [Fact]
+    public async Task DeleteRequest_WhenRequestDoesNotExist_ReturnsNotFound()
+    {
+        // Arrange
+
+        // Use an ID that should not exist in the database.
+        int nonExistentRequestId = -1;
+
+        // Act
+
+        HttpResponseMessage deleteResponse = await _client.DeleteAsync(
+            $"/requests/{nonExistentRequestId}"
+        );
+
+        // Assert
+
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
     }
 }
