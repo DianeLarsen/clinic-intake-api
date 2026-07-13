@@ -156,7 +156,7 @@ The endpoint can stay simple:
 
 ```csharp
 app.MapGet(
-    "/requests",
+    "/api/v1/requests",
     async (
         IIntakeService intakeService,
         RequestStatus? status,

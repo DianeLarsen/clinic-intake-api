@@ -1,9 +1,11 @@
+using Asp.Versioning;
 using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicIntakeApi.Controllers;
+
 
 //
 // [ApiController]
@@ -18,6 +20,7 @@ namespace ClinicIntakeApi.Controllers;
 // • API-specific behaviors
 //
 [ApiController]
+[ApiVersion(1.0)]
 //
 // [Route("[controller]")]
 //
@@ -30,7 +33,7 @@ namespace ClinicIntakeApi.Controllers;
 //          ↓
 //      /requests
 //
-[Route("[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 //
 // Controllers inherit from ControllerBase.
 //
@@ -165,7 +168,7 @@ public class RequestsController : ControllerBase
             Status = request.Status,
         };
 
-        return Created($"/requests/{request.Id}", response);
+        return Created($"/api/v1/requests/{request.Id}", response);
     }
 
     //

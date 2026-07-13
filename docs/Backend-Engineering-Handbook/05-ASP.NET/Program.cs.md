@@ -222,7 +222,7 @@ This middleware redirects HTTP requests to HTTPS.
 
 ```csharp
 app.MapGet(
-    "/requests",
+    "/api/v1/requests",
     async (
         IIntakeService intakeService,
         RequestStatus? status,

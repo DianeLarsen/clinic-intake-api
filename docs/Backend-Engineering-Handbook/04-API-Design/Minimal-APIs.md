@@ -23,7 +23,7 @@ Instead of creating a controller, the endpoint and its logic can be written in o
 Example:
 
 ```csharp
-app.MapGet("/requests", () =>
+app.MapGet("/api/v1/requests", () =>
 {
     return Results.Ok();
 });
@@ -100,7 +100,7 @@ Simple endpoint:
 
 ```csharp
 app.MapGet(
-    "/requests/{id}",
+    "/api/v1/requests/{id}",
     async (int id, IIntakeService intakeService) =>
     {
         IntakeRequest? request =
@@ -126,7 +126,7 @@ Services can be injected directly into endpoint parameters.
 
 ```csharp
 app.MapGet(
-    "/requests",
+    "/api/v1/requests",
     async (IIntakeService intakeService) =>
     {
         return Results.Ok(
@@ -147,7 +147,7 @@ For example:
 
 ```csharp
 app.MapPost(
-    "/requests",
+    "/api/v1/requests",
     async (
         CreateRequestDto dto,
         IIntakeService intakeService) =>
@@ -184,7 +184,7 @@ Results.Ok(data);
 ```
 
 ```csharp
-Results.Created("/requests/5", request);
+Results.Created("/api/v1/requests/5", request);
 ```
 
 ```csharp

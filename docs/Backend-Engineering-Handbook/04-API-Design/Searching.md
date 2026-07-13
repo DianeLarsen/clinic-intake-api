@@ -100,7 +100,7 @@ The endpoint accepts an optional search parameter:
 
 ```csharp
 app.MapGet(
-    "/requests",
+    "/api/v1/requests",
     async (
         IIntakeService intakeService,
         string? patient

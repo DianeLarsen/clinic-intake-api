@@ -26,13 +26,13 @@ Controllers organize related endpoints into classes.
 Instead of this:
 
 ```csharp
-app.MapGet("/requests", ...);
+app.MapGet("/api/v1/requests", ...);
 
-app.MapPost("/requests", ...);
+app.MapPost("/api/v1/requests", ...);
 
-app.MapPut("/requests/{id}/status", ...);
+app.MapPut("/api/v1/requests/{id}/status", ...);
 
-app.MapDelete("/requests/{id}", ...);
+app.MapDelete("/api/v1/requests/{id}", ...);
 ```
 
 the endpoints move into a controller:
@@ -306,7 +306,7 @@ DELETE /requests/5
 
 ```csharp
 app.MapGet(
-    "/requests",
+    "/api/v1/requests",
     async (IIntakeService intakeService) =>
     {
         return Results.Ok(
@@ -503,14 +503,14 @@ Bad:
 
 ```csharp
 return Created(
-    $"/requests/{request.Id}",
+    $"/api/v1/requests/{request.Id}",
     request
 );
 
 better:
 
 return Created(
-    $"/requests/{request.Id}",
+    $"/api/v1/requests/{request.Id}",
     new IntakeRequestResponseDto
     {
         Id = request.Id,
@@ -542,3 +542,24 @@ Requests
 ∞
 
 which is less an object model and more an existential crisis for the JSON serializer.
+
+## API Versioning
+
+Controllers can support multiple API versions.
+
+Example:
+
+```csharp
+[ApiController]
+[ApiVersion(1.0)]
+[Route("api/v{version:apiVersion}/[controller]")]
+public class RequestsController : ControllerBase
+
+Clients can then call:
+
+GET /api/v1/requests
+POST /api/v1/requests
+PUT /api/v1/requests/{id}/status
+DELETE /api/v1/requests/{id}
+
+Versioning allows new API versions to be created without breaking existing clients.

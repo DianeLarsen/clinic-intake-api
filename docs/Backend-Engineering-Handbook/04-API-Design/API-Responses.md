@@ -156,7 +156,7 @@ Created resource:
 
 ```csharp
 return Results.Created(
-    $"/requests/{request.Id}",
+    $"/api/v1/requests/{request.Id}",
     request);
 ```
 

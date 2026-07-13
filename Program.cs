@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Asp.Versioning;
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Middleware;
 using ClinicIntakeApi.Repositories;
@@ -24,6 +25,22 @@ builder
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
+builder
+    .Services.AddApiVersioning(options =>
+    {
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+
+        options.AssumeDefaultVersionWhenUnspecified = true;
+
+        options.ReportApiVersions = true;
+    })
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+
+        options.SubstituteApiVersionInUrl = true;
     });
 
 //

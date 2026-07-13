@@ -141,7 +141,7 @@ Minimal API endpoint:
 
 ```csharp
 app.MapGet(
-    "/requests/{id}",
+    "/api/v1/requests/{id}",
     async (int id, IIntakeService intakeService) =>
     {
         IntakeRequest? request =

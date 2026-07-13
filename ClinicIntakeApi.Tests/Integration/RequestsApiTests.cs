@@ -32,7 +32,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
     {
         // Act
 
-        HttpResponseMessage response = await _client.GetAsync("/requests");
+        HttpResponseMessage response = await _client.GetAsync("/api/v1/requests");
 
         // Assert
 
@@ -73,7 +73,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
 
         // Act
 
-        HttpResponseMessage response = await _client.PostAsJsonAsync("/requests", dto);
+        HttpResponseMessage response = await _client.PostAsJsonAsync("/api/v1/requests", dto);
 
         // Read the body before asserting.
         // This helps us see what the API returned if the test fails.
@@ -96,7 +96,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(clinicId, createdRequest.ClinicId);
 
         HttpResponseMessage deleteResponse = await _client.DeleteAsync(
-            $"/requests/{createdRequest.Id}"
+            $"/api/v1/requests/{createdRequest.Id}"
         );
 
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
@@ -111,7 +111,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
 
         // Act
 
-        HttpResponseMessage response = await _client.PostAsJsonAsync("/requests", dto);
+        HttpResponseMessage response = await _client.PostAsJsonAsync("/api/v1/requests", dto);
 
         // Assert
 
@@ -161,7 +161,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
         // Send a real HTTP PUT request to the API.
         //
         HttpResponseMessage updateResponse = await _client.PutAsJsonAsync(
-            $"/requests/{requestId}/status",
+            $"/api/v1/requests/{requestId}/status",
             dto,
             JsonOptions
         );
@@ -219,7 +219,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
         // Create a request that belongs only to this test.
         var dto = new CreateRequestDto { PatientId = patientId };
 
-        HttpResponseMessage createResponse = await _client.PostAsJsonAsync("/requests", dto);
+        HttpResponseMessage createResponse = await _client.PostAsJsonAsync("/api/v1/requests", dto);
 
         string createResponseBody = await createResponse.Content.ReadAsStringAsync();
 
@@ -239,7 +239,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
 
         // Delete the exact request this test created.
         HttpResponseMessage deleteResponse = await _client.DeleteAsync(
-            $"/requests/{createdRequest.Id}"
+            $"/api/v1/requests/{createdRequest.Id}"
         );
 
         // Assert
@@ -272,7 +272,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
         // Act
 
         HttpResponseMessage deleteResponse = await _client.DeleteAsync(
-            $"/requests/{nonExistentRequestId}"
+            $"/api/v1/requests/{nonExistentRequestId}"
         );
 
         // Assert

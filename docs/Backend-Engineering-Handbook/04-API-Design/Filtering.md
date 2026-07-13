@@ -99,7 +99,7 @@ The endpoint receives the filter value:
 
 ```csharp
 app.MapGet(
-    "/requests",
+    "/api/v1/requests",
     async (
         IIntakeService intakeService,
         RequestStatus? status

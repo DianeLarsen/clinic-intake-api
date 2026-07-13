@@ -111,7 +111,7 @@ The endpoint accepts pagination parameters:
 
 ```csharp
 app.MapGet(
-    "/requests",
+    "/api/v1/requests",
     async (
         IIntakeService intakeService,
         int page = 1,
