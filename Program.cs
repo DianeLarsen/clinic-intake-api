@@ -49,8 +49,12 @@ builder
 // AddDbContext() creates one DbContext per HTTP request (Scoped).
 // EF will use SQLite as the database.
 //
+string connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+
 builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
-    options.UseSqlite("Data Source=clinic-intake.db")
+    options.UseSqlite(connectionString)
 );
 
 //

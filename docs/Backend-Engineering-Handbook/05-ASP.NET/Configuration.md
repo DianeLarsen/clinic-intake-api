@@ -323,3 +323,23 @@ Configuration separates application settings from application logic so the same 
 - Azure SQL
 - Key Vault
 - App Service
+
+## Registering DbContext with configuration
+
+The database provider is usually configured in `Program.cs`.
+
+Example:
+
+```csharp
+string connectionString =
+    builder.Configuration.GetConnectionString(
+        "DefaultConnection"
+    )
+    ?? throw new InvalidOperationException(
+        "Connection string not found."
+    );
+
+builder.Services.AddDbContext<ClinicIntakeDbContext>(
+    options =>
+        options.UseSqlite(connectionString)
+);
