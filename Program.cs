@@ -5,6 +5,7 @@ using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Middleware;
 using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
+using ClinicIntakeApi.Versioning;
 using Microsoft.EntityFrameworkCore;
 
 // Creates the application builder.
@@ -31,7 +32,7 @@ builder
 builder
     .Services.AddApiVersioning(options =>
     {
-        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.DefaultApiVersion = new ApiVersion(ApiVersions.V1, 0);
 
         options.AssumeDefaultVersionWhenUnspecified = true;
 

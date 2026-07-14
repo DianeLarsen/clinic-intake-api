@@ -2,6 +2,7 @@ using Asp.Versioning;
 using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Services;
+using ClinicIntakeApi.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace ClinicIntakeApi.Controllers;
 // • API-specific behaviors
 //
 [ApiController]
-[ApiVersion(1.0)]
+[ApiVersion(ApiVersions.V1)]
 //
 // [Route("[controller]")]
 //
@@ -172,7 +173,19 @@ public class RequestsController : ControllerBase
             Status = request.Status,
         };
 
-        return Created($"/api/v1/requests/{request.Id}", response);
+        return CreatedAtAction(
+            nameof(GetById),
+            new
+            {
+                // Use the version from the incoming POST request
+                // when generating the new resource's URL.
+                version = HttpContext.GetRequestedApiVersion()?.ToString(),
+
+                // Supply the {id} required by GetById's route.
+                id = request.Id,
+            },
+            response
+        );
     }
 
     //
@@ -194,6 +207,9 @@ public class RequestsController : ControllerBase
     //
     // Deletes an intake request.
     //
+    // Requires an authenticated user whose Role claim is "Admin".
+    // An authenticated non-admin user receives 403 Forbidden.
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

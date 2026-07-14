@@ -68,25 +68,34 @@ public class DemoAuthenticationHandler : AuthenticationHandler<AuthenticationSch
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
-        // The request included a header, so now check its exact value.
-        //
-        // This is intentionally simple for learning.
-        // Real authentication should never use a hard-coded shared token.
-        if (authorizationHeader != "Bearer demo-token")
+        // These variables will hold the facts associated with the token.
+        string userName;
+        string userRole;
+
+        // The original demo token represents an administrator.
+        // We keep this token so our existing integration tests continue to work.
+        if (authorizationHeader == "Bearer demo-token")
+        {
+            userName = "Demo Admin";
+            userRole = "Admin";
+        }
+        // This second token represents an ordinary clinic user.
+        else if (authorizationHeader == "Bearer demo-user-token")
+        {
+            userName = "Demo User";
+            userRole = "User";
+        }
+        // The token did not match either accepted value.
+        else
         {
             return Task.FromResult(AuthenticateResult.Fail("Invalid authentication token."));
         }
 
-        // The token is valid, so create claims describing the user.
-        //
-        // A claim is one fact about a user:
-        // - Their name
-        // - Their role
-        // - The clinic they belong to
+        // Create claims using the identity selected above.
         Claim[] claims =
         [
-            new Claim(ClaimTypes.Name, "Demo User"),
-            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(ClaimTypes.Name, userName),
+            new Claim(ClaimTypes.Role, userRole),
             new Claim("ClinicId", "1"),
         ];
 
