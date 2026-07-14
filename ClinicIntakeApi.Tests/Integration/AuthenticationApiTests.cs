@@ -1,15 +1,14 @@
 using System.Net;
 using System.Net.Http.Headers;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace ClinicIntakeApi.Tests.Integration;
 
-public class AuthenticationApiTests : IClassFixture<WebApplicationFactory<Program>>
+public class AuthenticationApiTests : IClassFixture<CustomWebApplicationFactory>
 {
     // The factory creates a test version of the complete API.
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory _factory;
 
-    public AuthenticationApiTests(WebApplicationFactory<Program> factory)
+    public AuthenticationApiTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
     }

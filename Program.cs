@@ -1,12 +1,14 @@
 using System.Text.Json.Serialization;
 using Asp.Versioning;
-using ClinicIntakeApi.Authentication;
 using ClinicIntakeApi.Data;
+using ClinicIntakeApi.Filters;
 using ClinicIntakeApi.Middleware;
 using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
 using ClinicIntakeApi.Versioning;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 // Creates the application builder.
 // This is where services and application configuration are registered.
@@ -21,7 +23,37 @@ var builder = WebApplication.CreateBuilder(args);
 // These generate interactive API documentation.
 //
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    //
+    // Tell Swagger how JWT authentication works.
+    //
+    options.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            // JWTs are sent through the Authorization header.
+            Name = "Authorization",
+
+            // HTTP means this uses an HTTP authentication scheme.
+            Type = SecuritySchemeType.Http,
+
+            // The HTTP authentication scheme is Bearer.
+            Scheme = "bearer",
+
+            // Helps Swagger describe the token format.
+            BearerFormat = "JWT",
+
+            In = ParameterLocation.Header,
+
+            Description = "Paste the JWT only. Swagger adds the 'Bearer' prefix.",
+        }
+    );
+
+    // Examine [Authorize] and [AllowAnonymous] attributes
+    // and mark the correct Swagger operations as protected.
+    options.OperationFilter<AuthorizeCheckOperationFilter>();
+});
 builder
     .Services.AddControllers()
     .AddJsonOptions(options =>
@@ -46,18 +78,16 @@ builder
     });
 
 //
-// Register authentication.
+// Register JWT bearer authentication.
 //
-// "Demo" is the name of our authentication scheme.
-// When ASP.NET needs to identify a user, it will run
-// DemoAuthenticationHandler.
+// ASP.NET will look for a JWT in this header:
 //
-builder
-    .Services.AddAuthentication("Demo")
-    .AddScheme<
-        Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
-        DemoAuthenticationHandler
-    >("Demo", options => { });
+// Authorization: Bearer <token>
+//
+// The JWT handler validates the token and creates
+// HttpContext.User from the token's claims.
+//
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
 //
 // Register authorization.
