@@ -103,7 +103,7 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateRequest_WhenPatientDoesNotExist_ReturnsBadRequest()
+    public async Task CreateRequest_WhenPatientIdIsNegative_ReturnsValidationError()
     {
         // Arrange
 
@@ -113,11 +113,31 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
 
         HttpResponseMessage response = await _client.PostAsJsonAsync("/api/v1/requests", dto);
 
+        string responseBody = await response.Content.ReadAsStringAsync();
+
         // Assert
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
+        Assert.Contains("PatientId must be greater than 0.", responseBody);
+    }
+
+    [Fact]
+    public async Task CreateRequest_WhenPatientDoesNotExist_ReturnsBadRequest()
+    {
+        // Arrange
+
+        var dto = new CreateRequestDto { PatientId = 999999 };
+
+        // Act
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync("/api/v1/requests", dto);
+
         string responseBody = await response.Content.ReadAsStringAsync();
+
+        // Assert
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         Assert.Contains("does not exist", responseBody);
     }
@@ -278,5 +298,62 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
         // Assert
 
         Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRequest_WhenPatientIdIsNegative_ReturnsBadRequest()
+    {
+        // Arrange
+
+        var dto = new CreateRequestDto { PatientId = -5 };
+
+        // Act
+
+        HttpResponseMessage response = await _client.PostAsJsonAsync("/api/v1/requests", dto);
+
+        // Assert
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_WhenStatusIsInvalid_ReturnsBadRequest()
+    {
+        // Arrange
+
+        int requestId;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            requestId = await db
+                .IntakeRequests.AsNoTracking()
+                .OrderBy(request => request.Id)
+                .Select(request => request.Id)
+                .FirstAsync();
+        }
+
+        //
+        // 999 is not a valid RequestStatus value.
+        //
+        var dto = new UpdateRequestStatusDto { Status = (RequestStatus)999 };
+
+        // Act
+
+        HttpResponseMessage response = await _client.PutAsJsonAsync(
+            $"/api/v1/requests/{requestId}/status",
+            dto,
+            JsonOptions
+        );
+
+        string responseBody = await response.Content.ReadAsStringAsync();
+
+        // Assert
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        Assert.Contains("Status", responseBody);
     }
 }
