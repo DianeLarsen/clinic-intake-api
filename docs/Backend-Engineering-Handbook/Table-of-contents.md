@@ -43,13 +43,19 @@
 │   │   │   ├── Validation.md *
 │   │   │   ├── Versioning.md
 │   │   ├── 05-ASP.NET/
+│   │   │   ├── Authentication.md *
+│   │   │   ├── Authorization.md *
 │   │   │   ├── Configuration.md *
 │   │   │   ├── Controllers.md *
 │   │   │   ├── Dependency-Injection.md *
+│   │   │   ├── Environments.md *
+│   │   │   ├── JWT.md *
+│   │   │   ├── Logging.md *
 │   │   │   ├── Middleware.md *
 │   │   │   ├── Program.cs.md *
 │   │   │   ├── README.md *
 │   │   │   ├── Request-Lifecycle.md *
+│   │   │   ├── Validation.md *
 │   │   ├── 06-Entity-Framework/
 │   │   │   ├── DbContext.md *
 │   │   │   ├── DbSet.md *
