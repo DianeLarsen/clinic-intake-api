@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Asp.Versioning;
+using ClinicIntakeApi.Authentication;
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Middleware;
 using ClinicIntakeApi.Repositories;
@@ -42,6 +43,28 @@ builder
 
         options.SubstituteApiVersionInUrl = true;
     });
+
+//
+// Register authentication.
+//
+// "Demo" is the name of our authentication scheme.
+// When ASP.NET needs to identify a user, it will run
+// DemoAuthenticationHandler.
+//
+builder
+    .Services.AddAuthentication("Demo")
+    .AddScheme<
+        Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
+        DemoAuthenticationHandler
+    >("Demo", options => { });
+
+//
+// Register authorization.
+//
+// Authentication determines who the user is.
+// Authorization determines what the user may access.
+//
+builder.Services.AddAuthorization();
 
 //
 // Register Entity Framework Core.
@@ -103,6 +126,17 @@ app.UseRequestLogging();
 
 // app.UseFirstMiddleware();
 // app.UseSecondMiddleware();
+
+//
+// Identify the user from the request's authentication token.
+//
+app.UseAuthentication();
+
+//
+// Check whether the identified user is allowed
+// to access the requested endpoint.
+//
+app.UseAuthorization();
 
 app.MapControllers();
 

@@ -2,6 +2,7 @@ using Asp.Versioning;
 using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicIntakeApi.Controllers;
@@ -33,6 +34,10 @@ namespace ClinicIntakeApi.Controllers;
 //      /requests
 //
 [Route("api/v{version:apiVersion}/[controller]")]
+// Requires the request to contain valid authentication.
+// If authentication does not create a valid user,
+// ASP.NET stops the request and returns 401 Unauthorized.
+[Authorize]
 //
 // Controllers inherit from ControllerBase.
 //

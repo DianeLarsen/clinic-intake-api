@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,6 +21,12 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
     {
         _factory = factory;
         _client = factory.CreateClient();
+        // Give every request from this test client the valid demo token.
+        // These tests are testing controller behavior, not failed authentication.
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            "demo-token"
+        );
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
