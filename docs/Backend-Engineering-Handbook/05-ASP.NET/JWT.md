@@ -402,7 +402,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 ```
 
-The `AuthorizeCheckOperationFilter` inspects `[Authorize]` and `[AllowAnonymous]`. It marks protected endpoints with Swagger lock icons without falsely marking the public health endpoint as protected.
+The `AuthorizeCheckOperationFilter` inspects `[Authorize]` and `[AllowAnonymous]` on controller actions and marks protected controller endpoints with Swagger lock icons. Infrastructure health checks are mapped separately at `/health/live` and `/health/ready`, so they are not part of these controller operations.
 
 ## Enter a JWT in Swagger
 

@@ -8,8 +8,11 @@ using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
 using ClinicIntakeApi.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
+using ClinicIntakeApi.HealthChecks;
 
 // Creates the application builder.
 // This is where services and application configuration are registered.
@@ -133,6 +136,23 @@ builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
 );
 
 //
+// Register application health checks.
+//
+// This check uses ClinicIntakeDbContext.CanConnectAsync()
+// to verify that the API can communicate with its database.
+//
+builder
+    .Services.AddHealthChecks()
+    .AddDbContextCheck<ClinicIntakeDbContext>(
+        name: "database",
+        // Report Unhealthy when the database cannot be reached.
+        failureStatus: HealthStatus.Unhealthy,
+        // The "ready" tag lets the readiness endpoint
+        // select this check.
+        tags: ["ready"]
+    );
+
+//
 // Dependency Injection registrations.
 //
 // Whenever something asks for IIntakeRepository,
@@ -189,6 +209,41 @@ app.UseAuthentication();
 // to access the requested endpoint.
 //
 app.UseAuthorization();
+
+//
+// Liveness check.
+//
+// Runs no dependency checks. If the API can return this
+// response, its process is alive.
+//
+app.MapHealthChecks(
+        "/health/live",
+        new HealthCheckOptions
+        {
+            Predicate = _ => false,
+
+            ResponseWriter = HealthCheckResponseWriter.WriteResponseAsync,
+        }
+    )
+    .AllowAnonymous();
+
+//
+// Readiness check.
+//
+// Runs checks tagged "ready", including the database check.
+// A Healthy result means the API is ready to handle work.
+//
+app.MapHealthChecks(
+        "/health/ready",
+        new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("ready"),
+
+            ResponseWriter = HealthCheckResponseWriter.WriteResponseAsync,
+        }
+    )
+    .AllowAnonymous();
+
 
 app.MapControllers();
 

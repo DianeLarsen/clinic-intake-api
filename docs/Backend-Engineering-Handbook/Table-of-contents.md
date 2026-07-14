@@ -49,12 +49,15 @@
 │   │   │   ├── Controllers.md *
 │   │   │   ├── Dependency-Injection.md *
 │   │   │   ├── Environments.md *
+│   │   │   ├── Health-Checks.md *
 │   │   │   ├── JWT.md *
 │   │   │   ├── Logging.md *
 │   │   │   ├── Middleware.md *
+│   │   │   ├── Options-Pattern.md *
 │   │   │   ├── Program.cs.md *
 │   │   │   ├── README.md *
 │   │   │   ├── Request-Lifecycle.md *
+│   │   │   ├── User-Secrets.md *
 │   │   │   ├── Validation.md *
 │   │   ├── 06-Entity-Framework/
 │   │   │   ├── DbContext.md *
