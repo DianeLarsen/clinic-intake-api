@@ -132,22 +132,4 @@ public class AuthenticationApiTests : IClassFixture<CustomWebApplicationFactory>
         // for request 999999 and could not find it.
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
-
-    [Fact]
-    public async Task GetHealth_WhenTokenIsMissing_ReturnsOk()
-    {
-        // Arrange
-        //
-        // Create a client without an Authorization header.
-        using HttpClient client = _factory.CreateClient();
-
-        // Act
-        HttpResponseMessage response = await client.GetAsync("/api/v1/system/health");
-
-        // Assert
-        //
-        // The health endpoint has [AllowAnonymous],
-        // so it must be available without authentication.
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
 }

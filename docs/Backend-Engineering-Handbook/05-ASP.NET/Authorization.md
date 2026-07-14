@@ -267,44 +267,39 @@ Role names must match. `Admin` and `admin` should not be treated as interchangea
 
 Sometimes an endpoint should be available without authentication. A basic health check is a common example because monitoring systems may need to confirm that the API is running.
 
-The controller can require authentication by default:
+The health-check endpoints are mapped directly in `Program.cs`:
 
 ```csharp
-[ApiController]
-[ApiVersion(ApiVersions.V1)]
-[Route("api/v{version:apiVersion}/system")]
-[Authorize]
-public class SystemController : ControllerBase
+app.MapHealthChecks(
+        "/health/live",
+        new HealthCheckOptions
+        {
+            Predicate = _ => false,
+            ResponseWriter =
+                HealthCheckResponseWriter.WriteResponseAsync,
+        }
+    )
+    .AllowAnonymous();
 ```
 
-Then one action can override that rule with `[AllowAnonymous]`:
-
-```csharp
-// Overrides [Authorize] for this specific endpoint.
-// Anyone can check whether the API is running,
-// even without an authentication token.
-[AllowAnonymous]
-[HttpGet("health")]
-public IActionResult GetHealth()
-{
-    return Ok(new
-    {
-        status = "Healthy",
-    });
-}
-```
-
-The public endpoint is:
+The public endpoints are:
 
 ```http
-GET /api/v1/system/health
+GET /health/live
+GET /health/ready
 ```
 
-`[AllowAnonymous]` means:
+The method call:
+
+```csharp
+.AllowAnonymous()
+```
+
+adds the same anonymous-access metadata that `[AllowAnonymous]` adds to a controller action. It means:
 
 > Do not require an authenticated user for this action.
 
-It overrides the surrounding `[Authorize]` rule.
+Health checks remain public so the hosting platform can call them without obtaining a user JWT. Their response must therefore avoid exposing exception details, connection strings, or other secrets.
 
 ## Authorization Examples
 
@@ -315,7 +310,7 @@ It overrides the surrounding `[Authorize]` rule.
 | GET requests, User token | User | `200 OK` |
 | DELETE request, User token | User | `403 Forbidden` |
 | DELETE request, Admin token | Admin | Controller action runs |
-| GET health, no token | Anonymous | `200 OK` |
+| GET `/health/live`, no token | Anonymous | `200 OK` |
 
 ## Integration Tests
 
@@ -411,11 +406,11 @@ public async Task DeleteRequest_WhenUserIsAdmin_ReachesController()
 
 The Admin test expects `404 Not Found`, not `200 OK`, because the fake request does not exist. The important fact is that it did not return `403 Forbidden`. The Admin passed authorization and reached the controller.
 
-### Anonymous Users Can Reach the Health Endpoint
+### Anonymous Callers Can Reach the Liveness Endpoint
 
 ```csharp
 [Fact]
-public async Task GetHealth_WhenTokenIsMissing_ReturnsOk()
+public async Task GetLiveness_WithoutToken_ReturnsHealthy()
 {
     // Arrange
     // Create a client without an Authorization header.
@@ -423,9 +418,7 @@ public async Task GetHealth_WhenTokenIsMissing_ReturnsOk()
 
     // Act
     HttpResponseMessage response =
-        await client.GetAsync(
-            "/api/v1/system/health"
-        );
+        await client.GetAsync("/health/live");
 
     // Assert
     Assert.Equal(
