@@ -1,10 +1,12 @@
 using Asp.Versioning;
+using ClinicIntakeApi.Configuration;
 using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Services;
 using ClinicIntakeApi.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace ClinicIntakeApi.Controllers;
 
@@ -68,6 +70,10 @@ public class RequestsController : ControllerBase
     //
     private readonly IIntakeService _intakeService;
 
+    // Contains the pagination settings loaded
+    // from the "Pagination" configuration section.
+    private readonly PaginationOptions _paginationOptions;
+
     //
     // Constructor
     //
@@ -76,9 +82,16 @@ public class RequestsController : ControllerBase
     //
     // We save it so every action in this controller can use it.
     //
-    public RequestsController(IIntakeService intakeService)
+    public RequestsController(
+        IIntakeService intakeService,
+        IOptions<PaginationOptions> paginationOptions
+    )
     {
         _intakeService = intakeService;
+
+        // IOptions<T> is a wrapper provided by ASP.NET.
+        // .Value retrieves the actual PaginationOptions object.
+        _paginationOptions = paginationOptions.Value;
     }
 
     //
@@ -105,9 +118,26 @@ public class RequestsController : ControllerBase
         string? patient,
         string? sort,
         int page = 1,
-        int pageSize = 10
+        int? pageSize = null
     )
     {
+        // If the client did not provide pageSize,
+        // use the configured default.
+        int resolvedPageSize = pageSize ?? _paginationOptions.DefaultPageSize;
+
+        // Page numbers start at 1.
+        if (page < 1)
+        {
+            return BadRequest("Page must be greater than or equal to 1.");
+        }
+
+        // Reject page sizes outside the allowed range.
+        if (resolvedPageSize < 1 || resolvedPageSize > _paginationOptions.MaximumPageSize)
+        {
+            return BadRequest(
+                $"PageSize must be between 1 and {_paginationOptions.MaximumPageSize}."
+            );
+        }
         //
         // Ask the Service Layer to retrieve the data.
         //
@@ -123,7 +153,7 @@ public class RequestsController : ControllerBase
             patient,
             sort,
             page,
-            pageSize
+            resolvedPageSize
         );
 
         //

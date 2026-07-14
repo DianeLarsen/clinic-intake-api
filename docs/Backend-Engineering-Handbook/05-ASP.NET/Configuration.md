@@ -1,345 +1,299 @@
-# Configuration
+# Configuration in ASP.NET Core
 
-## What Problem Does This Solve?
+## What Is Configuration?
 
-Applications need settings that change depending on where they run.
+Configuration is information the application needs but should not hard-code into its classes.
 
-For example:
+Examples include:
 
-- Development vs Production
 - Database connection strings
-- API keys
-- Logging options
-- Authentication settings
+- Logging levels
+- Pagination limits
+- Authentication issuer and audience values
+- URLs for external services
+- Environment-specific behavior
 
-Hard-coding these values into the application would require changing and recompiling the code every time a setting changes.
+Configuration lets the same compiled application run with different settings in Development, Testing, and Production.
 
-Configuration separates application settings from application logic.
+## Real-World Analogy
 
-## Solution
+Think of the application as a programmable medical device and configuration as its setup record. The program contains the rules for how the device operates. Configuration supplies values that may differ between installations, such as which server to contact or which limits to use. Changing a setting should not require taking the program apart and soldering a new number into the code.
 
-ASP.NET Core provides a built-in configuration system that loads settings from multiple sources.
+## `builder.Configuration`
 
-Common configuration sources include:
+This line creates the application builder:
 
-- `appsettings.json`
-- `appsettings.Development.json`
-- Environment Variables
-- Command-line arguments
-- Azure Key Vault
-
-The application reads configuration at startup and uses it to configure services.
-
-## Why This Matters
-
-Configuration allows the same application to run in different environments without changing the source code.
-
-For example:
-
-Development
-
-```text
-SQLite
+```csharp
+var builder = WebApplication.CreateBuilder(args);
 ```
 
-Production
+ASP.NET automatically loads configuration from several sources and combines them into:
 
-```text
-Azure SQL Database
+```csharp
+builder.Configuration
 ```
 
-The code stays exactly the same.
+The application sees one combined collection of configuration keys and values, even though those values came from several places.
 
-Only the configuration changes.
+## Default Configuration Sources
 
-## Mental Model
-
-Think of configuration as the application's settings menu.
-
-```text
-Application
-      │
-      ▼
-Configuration
-      │
-      ▼
-Database
-Logging
-Authentication
-API Keys
-Feature Flags
-```
-
-The application asks configuration for values instead of storing them directly.
-
-## Configuration Sources
-
-ASP.NET Core combines settings from multiple places.
-
-For example:
+The usual sources, shown from lower to higher priority, are:
 
 ```text
 appsettings.json
-        ↓
-appsettings.Development.json
-        ↓
-Environment Variables
-        ↓
-Command Line
+    ↓ overridden by
+appsettings.{Environment}.json
+    ↓ overridden by
+User secrets in Development
+    ↓ overridden by
+Environment variables
+    ↓ overridden by
+Command-line arguments
 ```
 
-Later sources override earlier ones.
-
-This allows production servers to safely replace local settings.
-
-## Real-World Example
-
-In the Clinic Intake API, the database is configured like this:
-
-```csharp
-builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
-    options.UseSqlite(
-        "Data Source=clinic-intake.db"));
-```
-
-The connection string is currently hard-coded.
-
-A better approach is to store it in configuration.
+When two sources provide the same key, the higher-priority source wins.
 
 Example:
+
+```text
+appsettings.json:
+Pagination:DefaultPageSize = 10
+
+Environment variable:
+Pagination__DefaultPageSize = 3
+
+Effective value:
+Pagination:DefaultPageSize = 3
+```
+
+## Base Settings
+
+`appsettings.json` contains settings shared by environments:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection":
-      "Data Source=clinic-intake.db"
+    "DefaultConnection": "Data Source=clinic-intake.db"
+  },
+  "Pagination": {
+    "DefaultPageSize": 10,
+    "MaximumPageSize": 100
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+`appsettings.json` should contain safe defaults, not passwords or production secrets.
+
+## Environment-Specific Overrides
+
+ASP.NET loads a second JSON file matching the current environment.
+
+In Development, it loads:
+
+```text
+appsettings.Development.json
+```
+
+For this project, that file contains local JWT information:
+
+```json
+{
+  "Authentication": {
+    "Schemes": {
+      "Bearer": {
+        "ValidAudiences": [
+          "http://localhost:5090"
+        ],
+        "ValidIssuer": "dotnet-user-jwts"
+      }
+    }
   }
 }
 ```
 
-Then retrieve it:
+It does not repeat connection or logging settings because it inherits them from `appsettings.json`.
 
-```csharp
-builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString(
-            "DefaultConnection")));
-```
+## Hierarchical Keys
 
-Now changing the database requires updating configuration rather than modifying code.
-
-## Environment-Specific Configuration
-
-ASP.NET Core supports multiple environments.
-
-Examples:
-
-```text
-Development
-
-Testing
-
-Staging
-
-Production
-```
-
-The current environment is available through:
-
-```csharp
-app.Environment
-```
-
-Example:
-
-```csharp
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-}
-```
-
-Swagger is enabled only during development.
-
-## Configuration vs Dependency Injection
-
-These concepts are often confused.
-
-Configuration answers:
-
-```text
-What values should the application use?
-```
-
-Dependency Injection answers:
-
-```text
-What objects should the application create?
-```
-
-Example:
-
-Configuration provides:
-
-```text
-Connection String
-```
-
-Dependency Injection creates:
-
-```text
-ClinicIntakeDbContext
-```
-
-Configuration supplies the settings.
-
-Dependency Injection supplies the objects.
-
-## Common Configuration Examples
-
-Connection Strings
+JSON settings form a hierarchy:
 
 ```json
-"ConnectionStrings":
 {
-    "DefaultConnection":
-    "Data Source=clinic-intake.db"
+  "Pagination": {
+    "DefaultPageSize": 10
+  }
 }
 ```
 
----
+ASP.NET represents the full key with colons:
 
-Logging
-
-```json
-"Logging":
-{
-    "LogLevel":
-    {
-        "Default": "Information"
-    }
-}
+```text
+Pagination:DefaultPageSize
 ```
 
----
+For environment variables, use double underscores because colons do not work consistently on every platform:
 
-Feature Flags
-
-```json
-"Features":
-{
-    "EnableRegistration": true
-}
+```text
+Pagination__DefaultPageSize
 ```
 
----
+ASP.NET converts the double underscore into a colon.
 
-API Keys
+## Reading a Connection String
 
-Never store API keys directly in source code.
-
-Use:
-
-- Environment Variables
-- Azure Key Vault
-- Secret Manager (development)
-
-## Common Beginner Questions
-
-### Why not hard-code everything?
-
-Because different environments need different settings.
-
-Development may use SQLite.
-
-Production may use Azure SQL.
-
-Configuration allows both without changing the code.
-
----
-
-### What is `builder.Configuration`?
-
-It is ASP.NET Core's configuration system.
-
-It combines settings from multiple sources into one object.
-
----
-
-### Why are connection strings stored outside the code?
-
-Connection strings often differ between environments and may contain sensitive information.
-
-Keeping them in configuration makes the application easier to deploy and more secure.
-
----
-
-### What is `appsettings.json`?
-
-It is the default configuration file for an ASP.NET Core application.
-
-It stores settings that the application reads during startup.
-
-## Common Mistakes
-
-- Hard-coding connection strings.
-- Storing secrets in source control.
-- Confusing configuration with Dependency Injection.
-- Assuming configuration only comes from `appsettings.json`.
-- Forgetting that production overrides development settings.
-
-## Interview Answer
-
-Configuration in ASP.NET Core provides application settings from sources such as JSON files, environment variables, and Azure Key Vault. It allows the same application to run in multiple environments without changing the code, making deployment more flexible and secure.
-
-## One-Sentence Summary
-
-Configuration separates application settings from application logic so the same code can run in different environments.
-
-## What Finally Made It Click
-
-- Configuration is not code.
-- It is data that controls how the application behaves.
-- The application asks configuration for values instead of storing them directly.
-- Dependency Injection creates objects.
-- Configuration supplies the values those objects need.
-- The same application can connect to completely different databases simply by changing configuration.
-
-## Related Topics
-
-### Previous
-
-- Program.cs
-- Dependency Injection
-
-### Next
-
-- Middleware
-- Azure Configuration
-
-### See Also
-
-- DbContext
-- Azure SQL
-- Key Vault
-- App Service
-
-## Registering DbContext with configuration
-
-The database provider is usually configured in `Program.cs`.
-
-Example:
+`Program.cs` reads the database connection string like this:
 
 ```csharp
 string connectionString =
-    builder.Configuration.GetConnectionString(
-        "DefaultConnection"
-    )
+    builder.Configuration
+        .GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
-        "Connection string not found."
+        "Connection string 'DefaultConnection' was not found."
     );
+```
 
-builder.Services.AddDbContext<ClinicIntakeDbContext>(
-    options =>
-        options.UseSqlite(connectionString)
-);
+`GetConnectionString("DefaultConnection")` is a helper that reads:
+
+```text
+ConnectionStrings:DefaultConnection
+```
+
+This code fails immediately if the required value is missing. That is better than starting successfully and failing during the first database request.
+
+## Environment-Variable Overrides
+
+This command temporarily changes the default page size for one process:
+
+```bash
+Pagination__DefaultPageSize=3 \
+  dotnet run --launch-profile http
+```
+
+It does not modify a JSON file. When the process stops, that temporary override disappears.
+
+Azure App Settings use the same configuration-key format. An Azure setting named:
+
+```text
+Pagination__DefaultPageSize
+```
+
+overrides the JSON value without rebuilding the application.
+
+## Configuration Versus Secrets
+
+Configuration is not automatically secret.
+
+Safe examples include:
+
+- Pagination limits
+- Log levels
+- Public URLs
+- Issuer names
+- Audience names
+
+Secret examples include:
+
+- Passwords
+- Database passwords
+- API keys
+- JWT signing keys
+- OAuth client secrets
+
+Do not put secrets in committed JSON files. Use .NET user secrets locally and a controlled production secret store such as Azure Key Vault.
+
+## Strongly Typed Configuration
+
+For related values, prefer the Options pattern instead of asking classes to retrieve individual strings from `IConfiguration`.
+
+```text
+JSON section
+    ↓ bound into
+C# options object
+    ↓ injected into
+Controller or service
+```
+
+For example:
+
+```json
+"Pagination": {
+  "DefaultPageSize": 10,
+  "MaximumPageSize": 100
+}
+```
+
+becomes a `PaginationOptions` object with integer properties.
+
+## Fail-Fast Configuration
+
+Required configuration should be validated during startup.
+
+This project validates that:
+
+```text
+DefaultPageSize > 0
+MaximumPageSize >= DefaultPageSize
+```
+
+An invalid environment-variable override such as:
+
+```bash
+Pagination__MaximumPageSize=5 \
+  dotnet run --launch-profile http
+```
+
+fails because the configured default is 10. Refusing to start prevents the application from accepting requests with impossible rules.
+
+## Common Mistakes
+
+### Repeating identical settings
+
+Do not copy the same value into every environment file. Put shared values in `appsettings.json` and only genuine overrides in environment-specific files.
+
+### Treating JSON as a secret store
+
+An ignored file can still be copied, logged, backed up, or accidentally committed. Use a secrets system for secrets.
+
+### Hard-coding operational values
+
+This is configuration hidden inside source code:
+
+```csharp
+int pageSize = 10;
+```
+
+If the number is an operational rule that may vary, bind it from configuration.
+
+### Logging every configuration value
+
+Dumping all configuration for debugging can expose passwords, tokens, and signing keys. Log only specifically approved non-secret values.
+
+## Key Points
+
+```text
+Configuration
+    → Values the application needs to operate
+
+builder.Configuration
+    → Combined view of all configuration sources
+
+Later provider
+    → Overrides an earlier provider
+
+Double underscore
+    → Represents hierarchy in environment variables
+
+Fail fast
+    → Reject invalid settings during startup
+```
+
+## Reference
+
+- [Configuration in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/)

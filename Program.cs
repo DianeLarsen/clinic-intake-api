@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Asp.Versioning;
+using ClinicIntakeApi.Configuration;
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Filters;
 using ClinicIntakeApi.Middleware;
@@ -96,6 +97,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 // Authorization determines what the user may access.
 //
 builder.Services.AddAuthorization();
+
+//
+// Load the "Pagination" section from configuration
+// into a PaginationOptions object.
+//
+builder
+    .Services.AddOptions<PaginationOptions>()
+    .Bind(builder.Configuration.GetSection(PaginationOptions.SectionName))
+    // The default must be at least 1.
+    .Validate(
+        options => options.DefaultPageSize > 0,
+        "Pagination:DefaultPageSize must be greater than 0."
+    )
+    // The maximum cannot be smaller than the default.
+    .Validate(
+        options => options.MaximumPageSize >= options.DefaultPageSize,
+        "Pagination:MaximumPageSize must be greater than or equal to DefaultPageSize."
+    )
+    // Stop startup immediately if configuration is invalid.
+    .ValidateOnStart();
 
 //
 // Register Entity Framework Core.
