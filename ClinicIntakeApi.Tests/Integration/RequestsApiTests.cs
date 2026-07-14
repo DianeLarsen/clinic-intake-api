@@ -363,4 +363,65 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
 
         Assert.Contains("Status", responseBody);
     }
+
+    [Fact]
+    public async Task GetRequests_WhenPageSizeIsMissing_UsesConfiguredDefault()
+    {
+        // Arrange
+        //
+        // Do not include pageSize in the query string.
+        // appsettings.json says the default should be 10.
+
+        // Act
+        HttpResponseMessage response = await _client.GetAsync("/api/v1/requests");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        PagedResponse<RequestSummaryDto>? responseBody = await response.Content.ReadFromJsonAsync<
+            PagedResponse<RequestSummaryDto>
+        >();
+
+        Assert.NotNull(responseBody);
+
+        // Proves the controller used Pagination:DefaultPageSize.
+        Assert.Equal(10, responseBody.PageSize);
+    }
+
+    [Fact]
+    public async Task GetRequests_WhenPageSizeExceedsMaximum_ReturnsBadRequest()
+    {
+        // Arrange
+        //
+        // appsettings.json sets MaximumPageSize to 100.
+        // Requesting 101 should be rejected.
+
+        // Act
+        HttpResponseMessage response = await _client.GetAsync("/api/v1/requests?pageSize=101");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        string responseBody = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("PageSize must be between 1 and 100", responseBody);
+    }
+
+    [Fact]
+    public async Task GetRequests_WhenPageIsLessThanOne_ReturnsBadRequest()
+    {
+        // Arrange
+        //
+        // Page numbering begins at 1.
+
+        // Act
+        HttpResponseMessage response = await _client.GetAsync("/api/v1/requests?page=0");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        string responseBody = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Page must be greater than or equal to 1", responseBody);
+    }
 }
