@@ -1,8 +1,10 @@
 using System.Text.Json.Serialization;
 using Asp.Versioning;
+using ClinicIntakeApi.Authorization;
 using ClinicIntakeApi.Configuration;
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Filters;
+using ClinicIntakeApi.HealthChecks;
 using ClinicIntakeApi.Middleware;
 using ClinicIntakeApi.Repositories;
 using ClinicIntakeApi.Services;
@@ -12,7 +14,6 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
-using ClinicIntakeApi.HealthChecks;
 
 // Creates the application builder.
 // This is where services and application configuration are registered.
@@ -99,7 +100,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 // Authentication determines who the user is.
 // Authorization determines what the user may access.
 //
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AuthorizationPolicies.ClinicMember,
+        policy =>
+        {
+            // The request must contain a valid authenticated user.
+            policy.RequireAuthenticatedUser();
+
+            // The user must have a ClinicId claim containing
+            // a positive integer.
+            policy.RequireAssertion(context =>
+                int.TryParse(
+                    context.User.FindFirst(CustomClaimTypes.ClinicId)?.Value,
+                    out int clinicId
+                )
+                && clinicId > 0
+            );
+        }
+    );
+});
 
 //
 // Load the "Pagination" section from configuration
@@ -243,7 +264,6 @@ app.MapHealthChecks(
         }
     )
     .AllowAnonymous();
-
 
 app.MapControllers();
 

@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using ClinicIntakeApi.Authorization;
 using ClinicIntakeApi.Configuration;
 using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
@@ -40,7 +41,7 @@ namespace ClinicIntakeApi.Controllers;
 // Requires the request to contain valid authentication.
 // If authentication does not create a valid user,
 // ASP.NET stops the request and returns 401 Unauthorized.
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.ClinicMember)]
 //
 // Controllers inherit from ControllerBase.
 //
@@ -138,6 +139,9 @@ public class RequestsController : ControllerBase
                 $"PageSize must be between 1 and {_paginationOptions.MaximumPageSize}."
             );
         }
+
+        // Read the clinic identity from the validated JWT.
+        int clinicId = User.GetRequiredClinicId();
         //
         // Ask the Service Layer to retrieve the data.
         //
@@ -153,7 +157,8 @@ public class RequestsController : ControllerBase
             patient,
             sort,
             page,
-            resolvedPageSize
+            resolvedPageSize,
+            clinicId
         );
 
         //
@@ -175,7 +180,9 @@ public class RequestsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        IntakeRequest? request = await _intakeService.FindRequestByIdAsync(id);
+        int clinicId = User.GetRequiredClinicId();
+
+        IntakeRequest? request = await _intakeService.FindRequestByIdAsync(id, clinicId);
 
         return request is not null ? Ok(request) : NotFound();
     }
@@ -188,7 +195,9 @@ public class RequestsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateRequestDto dto)
     {
-        IntakeRequest? request = await _intakeService.AddRequestAsync(dto.PatientId);
+        int clinicId = User.GetRequiredClinicId();
+
+        IntakeRequest? request = await _intakeService.AddRequestAsync(dto.PatientId, clinicId);
 
         if (request is null)
         {
@@ -207,11 +216,8 @@ public class RequestsController : ControllerBase
             nameof(GetById),
             new
             {
-                // Use the version from the incoming POST request
-                // when generating the new resource's URL.
                 version = HttpContext.GetRequestedApiVersion()?.ToString(),
 
-                // Supply the {id} required by GetById's route.
                 id = request.Id,
             },
             response
@@ -226,8 +232,11 @@ public class RequestsController : ControllerBase
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateStatus(int id, UpdateRequestStatusDto dto)
     {
+        int clinicId = User.GetRequiredClinicId();
+
         Console.WriteLine($"Received request to update status of request {id} to {dto.Status}");
-        bool updated = await _intakeService.UpdateStatusAsync(id, dto.Status);
+
+        bool updated = await _intakeService.UpdateStatusAsync(id, dto.Status, clinicId);
 
         return updated ? NoContent() : NotFound();
     }
@@ -243,7 +252,9 @@ public class RequestsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        bool deleted = await _intakeService.DeleteRequestAsync(id);
+        int clinicId = User.GetRequiredClinicId();
+
+        bool deleted = await _intakeService.DeleteRequestAsync(id, clinicId);
 
         return deleted ? NoContent() : NotFound();
     }

@@ -20,17 +20,18 @@ public static class DbSeeder
         using IServiceScope scope = services.CreateScope();
 
         // Get the database context.
-        var dbContext = scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
-
-        // Create the database and tables if they do not exist.
-        await dbContext.Database.EnsureCreatedAsync();
-
-        IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
-
         ClinicIntakeDbContext db =
             scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
 
-        IEnumerable<IntakeRequest> existingRequests = await intakeService.GetAllRequestsAsync();
+        // Create the database and tables if they do not exist.
+        await db.Database.EnsureCreatedAsync();
+
+        // Get the service used to create and update requests.
+        IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
+
+        // The seeder is trusted application-maintenance code,
+        // so it may check whether any clinic has existing requests.
+        bool requestsExist = db.IntakeRequests.Any();
 
         //
         // Ensure default clinics exist.
@@ -134,13 +135,16 @@ public static class DbSeeder
         //
         // This runs only for a brand-new database.
         //
-        if (!existingRequests.Any())
+        if (!requestsExist)
         {
             for (int i = 0; i < patients.Length; i++)
             {
                 Patient patient = patients[i];
 
-                IntakeRequest? request = await intakeService.AddRequestAsync(patient.Id);
+                IntakeRequest? request = await intakeService.AddRequestAsync(
+                    patient.Id,
+                    patient.ClinicId
+                );
 
                 if (request is null)
                 {
@@ -153,11 +157,19 @@ public static class DbSeeder
                 //
                 if (i % 3 == 0)
                 {
-                    await intakeService.UpdateStatusAsync(request.Id, RequestStatus.InReview);
+                    await intakeService.UpdateStatusAsync(
+                        request.Id,
+                        RequestStatus.InReview,
+                        patient.ClinicId
+                    );
                 }
                 else if (i % 5 == 0)
                 {
-                    await intakeService.UpdateStatusAsync(request.Id, RequestStatus.Completed);
+                    await intakeService.UpdateStatusAsync(
+                        request.Id,
+                        RequestStatus.Completed,
+                        patient.ClinicId
+                    );
                 }
             }
         }

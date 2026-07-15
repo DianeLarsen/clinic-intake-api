@@ -132,4 +132,50 @@ public class AuthenticationApiTests : IClassFixture<CustomWebApplicationFactory>
         // for request 999999 and could not find it.
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetRequests_WhenClinicIdClaimIsMissing_ReturnsForbidden()
+    {
+        // Arrange
+        //
+        // This token represents an authenticated user,
+        // but TestAuthenticationHandler does not give
+        // the user a ClinicId claim.
+        using HttpClient client = _factory.CreateClient();
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            "demo-no-clinic-token"
+        );
+
+        // Act
+        HttpResponseMessage response = await client.GetAsync("/api/v1/requests");
+
+        // Assert
+        //
+        // The user is authenticated, so this is not 401.
+        // The user fails the ClinicMember policy, so it is 403.
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetRequests_WhenClinicIdClaimIsInvalid_ReturnsForbidden()
+    {
+        // Arrange
+        //
+        // This user has a ClinicId claim, but its value
+        // is "not-a-number".
+        using HttpClient client = _factory.CreateClient();
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            "demo-invalid-clinic-token"
+        );
+
+        // Act
+        HttpResponseMessage response = await client.GetAsync("/api/v1/requests");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

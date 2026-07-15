@@ -34,6 +34,29 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
         Converters = { new JsonStringEnumConverter() },
     };
 
+    /// <summary>
+    /// Creates an authenticated test client belonging
+    /// to the specified clinic.
+    /// </summary>
+    private HttpClient CreateClientForClinic(int clinicId)
+    {
+        HttpClient client = _factory.CreateClient();
+
+        // Use the valid Admin test token.
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            "demo-token"
+        );
+
+        // Override the fake user's ClinicId claim.
+        client.DefaultRequestHeaders.Add(
+            TestAuthenticationHandler.ClinicIdHeaderName,
+            clinicId.ToString()
+        );
+
+        return client;
+    }
+
     [Fact]
     public async Task GetRequests_ReturnsOk()
     {
@@ -423,5 +446,316 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
         string responseBody = await response.Content.ReadAsStringAsync();
 
         Assert.Contains("Page must be greater than or equal to 1", responseBody);
+    }
+
+    [Fact]
+    public async Task GetRequestById_WhenRequestBelongsToAnotherClinic_ReturnsNotFound()
+    {
+        // Arrange
+        int requestId;
+        int ownerClinicId;
+        int otherClinicId;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            // Select one real request from the seeded database.
+            IntakeRequest targetRequest = await db
+                .IntakeRequests.AsNoTracking()
+                .OrderBy(request => request.Id)
+                .FirstAsync();
+
+            requestId = targetRequest.Id;
+            ownerClinicId = targetRequest.ClinicId;
+
+            // Select a different clinic.
+            otherClinicId = await db
+                .Clinics.AsNoTracking()
+                .Where(clinic => clinic.Id != ownerClinicId)
+                .OrderBy(clinic => clinic.Id)
+                .Select(clinic => clinic.Id)
+                .FirstAsync();
+        }
+
+        using HttpClient ownerClient = CreateClientForClinic(ownerClinicId);
+
+        using HttpClient otherClinicClient = CreateClientForClinic(otherClinicId);
+
+        // Act
+        HttpResponseMessage ownerResponse = await ownerClient.GetAsync(
+            $"/api/v1/requests/{requestId}"
+        );
+
+        HttpResponseMessage otherClinicResponse = await otherClinicClient.GetAsync(
+            $"/api/v1/requests/{requestId}"
+        );
+
+        // Assert
+
+        // The owning clinic can retrieve the request.
+        Assert.Equal(HttpStatusCode.OK, ownerResponse.StatusCode);
+
+        // Another clinic sees the same result it would receive
+        // for a nonexistent request.
+        Assert.Equal(HttpStatusCode.NotFound, otherClinicResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetRequests_ReturnsOnlyRequestsFromAuthenticatedClinic()
+    {
+        // Arrange
+        int clinicId;
+        List<int> expectedRequestIds;
+        List<int> foreignRequestIds;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            // Select a clinic that owns at least one request.
+            clinicId = await db
+                .IntakeRequests.AsNoTracking()
+                .OrderBy(request => request.Id)
+                .Select(request => request.ClinicId)
+                .FirstAsync();
+
+            // Record every request this clinic should receive.
+            expectedRequestIds = await db
+                .IntakeRequests.AsNoTracking()
+                .Where(request => request.ClinicId == clinicId)
+                .Select(request => request.Id)
+                .OrderBy(id => id)
+                .ToListAsync();
+
+            // Record requests belonging to other clinics.
+            foreignRequestIds = await db
+                .IntakeRequests.AsNoTracking()
+                .Where(request => request.ClinicId != clinicId)
+                .Select(request => request.Id)
+                .ToListAsync();
+        }
+
+        using HttpClient clinicClient = CreateClientForClinic(clinicId);
+
+        // Act
+        //
+        // Use the maximum configured page size so all current
+        // seeded requests for this clinic fit on one page.
+        HttpResponseMessage response = await clinicClient.GetAsync("/api/v1/requests?pageSize=100");
+
+        PagedResponse<RequestSummaryDto>? responseBody = await response.Content.ReadFromJsonAsync<
+            PagedResponse<RequestSummaryDto>
+        >(JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        Assert.NotNull(responseBody);
+
+        List<int> actualRequestIds = responseBody
+            .Items.Select(item => item.Id)
+            .OrderBy(id => id)
+            .ToList();
+
+        // The clinic receives exactly its own request IDs.
+        Assert.Equal(expectedRequestIds, actualRequestIds);
+
+        // No foreign request ID appears in the response.
+        Assert.DoesNotContain(actualRequestIds, id => foreignRequestIds.Contains(id));
+    }
+
+    [Fact]
+    public async Task CreateRequest_WhenPatientBelongsToAnotherClinic_ReturnsBadRequest()
+    {
+        // Arrange
+        int patientId;
+        int patientClinicId;
+        int otherClinicId;
+        int requestCountBefore;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            Patient patient = await db
+                .Patients.AsNoTracking()
+                .OrderBy(patient => patient.Id)
+                .FirstAsync();
+
+            patientId = patient.Id;
+            patientClinicId = patient.ClinicId;
+
+            // Choose a clinic that does not own this patient.
+            otherClinicId = await db
+                .Clinics.AsNoTracking()
+                .Where(clinic => clinic.Id != patientClinicId)
+                .OrderBy(clinic => clinic.Id)
+                .Select(clinic => clinic.Id)
+                .FirstAsync();
+
+            // Record how many requests already exist
+            // for this patient.
+            requestCountBefore = await db.IntakeRequests.CountAsync(request =>
+                request.PatientId == patientId
+            );
+        }
+
+        using HttpClient otherClinicClient = CreateClientForClinic(otherClinicId);
+
+        var dto = new CreateRequestDto { PatientId = patientId };
+
+        // Act
+        HttpResponseMessage response = await otherClinicClient.PostAsJsonAsync(
+            "/api/v1/requests",
+            dto
+        );
+
+        string responseBody = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        Assert.Contains("does not exist", responseBody);
+
+        // Confirm that the failed request created no record.
+        using (IServiceScope assertScope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                assertScope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            int requestCountAfter = await db.IntakeRequests.CountAsync(request =>
+                request.PatientId == patientId
+            );
+
+            Assert.Equal(requestCountBefore, requestCountAfter);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateStatus_WhenRequestBelongsToAnotherClinic_ReturnsNotFound()
+    {
+        // Arrange
+        int requestId;
+        int ownerClinicId;
+        int otherClinicId;
+        RequestStatus originalStatus;
+        RequestStatus attemptedStatus;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            IntakeRequest request = await db
+                .IntakeRequests.AsNoTracking()
+                .OrderBy(request => request.Id)
+                .FirstAsync();
+
+            requestId = request.Id;
+            ownerClinicId = request.ClinicId;
+            originalStatus = request.Status;
+
+            otherClinicId = await db
+                .Clinics.AsNoTracking()
+                .Where(clinic => clinic.Id != ownerClinicId)
+                .OrderBy(clinic => clinic.Id)
+                .Select(clinic => clinic.Id)
+                .FirstAsync();
+
+            // Make sure the attempted status differs from
+            // the request's current status.
+            attemptedStatus =
+                originalStatus == RequestStatus.Completed
+                    ? RequestStatus.InReview
+                    : RequestStatus.Completed;
+        }
+
+        using HttpClient otherClinicClient = CreateClientForClinic(otherClinicId);
+
+        var dto = new UpdateRequestStatusDto { Status = attemptedStatus };
+
+        // Act
+        HttpResponseMessage response = await otherClinicClient.PutAsJsonAsync(
+            $"/api/v1/requests/{requestId}/status",
+            dto,
+            JsonOptions
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        // Confirm the database record was not changed.
+        using (IServiceScope assertScope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                assertScope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            RequestStatus savedStatus = await db
+                .IntakeRequests.AsNoTracking()
+                .Where(request => request.Id == requestId)
+                .Select(request => request.Status)
+                .SingleAsync();
+
+            Assert.Equal(originalStatus, savedStatus);
+        }
+    }
+
+    [Fact]
+    public async Task DeleteRequest_WhenRequestBelongsToAnotherClinic_ReturnsNotFound()
+    {
+        // Arrange
+        int requestId;
+        int ownerClinicId;
+        int otherClinicId;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            IntakeRequest request = await db
+                .IntakeRequests.AsNoTracking()
+                .OrderBy(request => request.Id)
+                .FirstAsync();
+
+            requestId = request.Id;
+            ownerClinicId = request.ClinicId;
+
+            otherClinicId = await db
+                .Clinics.AsNoTracking()
+                .Where(clinic => clinic.Id != ownerClinicId)
+                .OrderBy(clinic => clinic.Id)
+                .Select(clinic => clinic.Id)
+                .FirstAsync();
+        }
+
+        // CreateClientForClinic() uses demo-token,
+        // which has the Admin role.
+        using HttpClient otherClinicAdmin = CreateClientForClinic(otherClinicId);
+
+        // Act
+        HttpResponseMessage response = await otherClinicAdmin.DeleteAsync(
+            $"/api/v1/requests/{requestId}"
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        // Confirm the record still exists.
+        using (IServiceScope assertScope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                assertScope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            bool requestStillExists = await db
+                .IntakeRequests.AsNoTracking()
+                .AnyAsync(request => request.Id == requestId);
+
+            Assert.True(requestStillExists);
+        }
     }
 }

@@ -6,25 +6,26 @@ namespace ClinicIntakeApi.Services;
 
 public interface IIntakeService
 {
-    Task<IntakeRequest?> AddRequestAsync(int patientId);
+    Task<IntakeRequest?> AddRequestAsync(int patientId, int clinicId);
 
-    Task<IntakeRequest?> FindRequestByIdAsync(int id);
+    Task<IntakeRequest?> FindRequestByIdAsync(int id, int clinicId);
 
-    Task<bool> UpdateStatusAsync(int id, RequestStatus status);
+    Task<bool> UpdateStatusAsync(int id, RequestStatus status, int clinicId);
 
-    Task<int> GetRequestCountAsync();
+    Task<int> GetRequestCountAsync(int clinicId);
 
-    Task<IEnumerable<IntakeRequest>> GetAllRequestsAsync();
+    Task<IEnumerable<IntakeRequest>> GetAllRequestsAsync(int clinicId);
 
-    Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync();
+    Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync(int clinicId);
 
-    Task<bool> DeleteRequestAsync(int id);
+    Task<bool> DeleteRequestAsync(int id, int clinicId);
 
     Task<PagedResponse<RequestSummaryDto>> GetRequestSummariesAsync(
         RequestStatus? status,
         string? patient,
         string? sort,
         int page,
-        int pageSize
+        int pageSize,
+        int clinicId
     );
 }

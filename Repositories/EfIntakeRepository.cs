@@ -13,37 +13,58 @@ public class EfIntakeRepository : IIntakeRepository
         _db = db;
     }
 
-    public async Task<IntakeRequest> AddAsync(IntakeRequest request)
+    public async Task<IntakeRequest> AddAsync(IntakeRequest request, int clinicId)
     {
+        // The record must belong to the clinic identified
+        // by the authenticated user's JWT.
+        if (request.ClinicId != clinicId)
+        {
+            throw new InvalidOperationException("Cannot add a request for another clinic.");
+        }
+
         _db.IntakeRequests.Add(request);
         await _db.SaveChangesAsync();
 
         return request;
     }
 
-    public async Task<IEnumerable<IntakeRequest>> GetAllAsync()
+    public async Task<IEnumerable<IntakeRequest>> GetAllAsync(int clinicId)
     {
         return await _db
-            .IntakeRequests.Include(r => r.Patient)
-            .Include(r => r.Clinic)
+            .IntakeRequests
+            // Only retrieve records owned by this clinic.
+            .Where(request => request.ClinicId == clinicId)
+            .Include(request => request.Patient)
+            .Include(request => request.Clinic)
             .ToListAsync();
     }
 
-    public async Task<IntakeRequest?> GetByIdAsync(int id)
+    public async Task<IntakeRequest?> GetByIdAsync(int id, int clinicId)
     {
-        return await _db.IntakeRequests.FirstOrDefaultAsync(r => r.Id == id);
+        return await _db.IntakeRequests.FirstOrDefaultAsync(request =>
+            request.Id == id && request.ClinicId == clinicId
+        );
     }
 
-    public async Task<bool> UpdateAsync(IntakeRequest request)
+    public async Task<bool> UpdateAsync(IntakeRequest request, int clinicId)
     {
+        // Refuse to save an entity belonging to another clinic.
+        if (request.ClinicId != clinicId)
+        {
+            return false;
+        }
+
+        // The request was loaded by GetByIdAsync(), so EF Core
+        // is already tracking its changed status.
         await _db.SaveChangesAsync();
 
         return true;
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, int clinicId)
     {
-        IntakeRequest? request = await GetByIdAsync(id);
+        // Search using both the record ID and clinic ID.
+        IntakeRequest? request = await GetByIdAsync(id, clinicId);
 
         if (request is null)
         {
@@ -56,8 +77,10 @@ public class EfIntakeRepository : IIntakeRepository
         return true;
     }
 
-    public async Task<Patient?> GetPatientByIdAsync(int patientId)
+    public async Task<Patient?> GetPatientByIdAsync(int patientId, int clinicId)
     {
-        return await _db.Patients.FirstOrDefaultAsync(p => p.Id == patientId);
+        return await _db.Patients.FirstOrDefaultAsync(patient =>
+            patient.Id == patientId && patient.ClinicId == clinicId
+        );
     }
 }

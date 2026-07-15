@@ -7,6 +7,9 @@ namespace ClinicIntakeApi.Tests.Unit;
 
 public class IntakeServiceTests
 {
+    // All records in these unit tests belong to Clinic 10.
+    private const int TestClinicId = 10;
+
     [Fact]
     public async Task AddRequestAsync_WhenPatientExists_ReturnsNewRequest()
     {
@@ -29,21 +32,21 @@ public class IntakeServiceTests
         // "sets up When someone asks for patient 1 (.Setup()),
         // return this patient (.ReturnsAsync())."
         repositoryMock
-            .Setup(repository => repository.GetPatientByIdAsync(1))
+            .Setup(repository => repository.GetPatientByIdAsync(1, TestClinicId))
             .ReturnsAsync(patient);
 
         // Tell the fake repository:
         // "When someone adds a request, return that request."
         repositoryMock
-            .Setup(repository => repository.AddAsync(It.IsAny<IntakeRequest>()))
-            .ReturnsAsync((IntakeRequest request) => request);
+            .Setup(repository => repository.AddAsync(It.IsAny<IntakeRequest>(), TestClinicId))
+            .ReturnsAsync((IntakeRequest request, int clinicId) => request);
 
         // Give the fake repository to the real service.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        IntakeRequest? result = await service.AddRequestAsync(1);
+        IntakeRequest? result = await service.AddRequestAsync(1, TestClinicId);
 
         // Assert
 
@@ -64,7 +67,7 @@ public class IntakeServiceTests
         // "When someone asks for patient 999,
         // pretend the patient does not exist."
         repositoryMock
-            .Setup(repository => repository.GetPatientByIdAsync(999))
+            .Setup(repository => repository.GetPatientByIdAsync(999, TestClinicId))
             .ReturnsAsync((Patient?)null);
 
         // Create the service.
@@ -72,7 +75,7 @@ public class IntakeServiceTests
 
         // Act
 
-        IntakeRequest? result = await service.AddRequestAsync(999);
+        IntakeRequest? result = await service.AddRequestAsync(999, TestClinicId);
 
         // Assert
 
@@ -90,18 +93,19 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "If DeleteAsync is called,
         // return true."
-        repositoryMock.Setup(repository => repository.DeleteAsync(123)).ReturnsAsync(true);
-
+        repositoryMock
+            .Setup(repository => repository.DeleteAsync(123, TestClinicId))
+            .ReturnsAsync(true);
         // Create the service.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        await service.DeleteRequestAsync(123);
+        await service.DeleteRequestAsync(123, TestClinicId);
 
         // Assert
 
-        repositoryMock.Verify(repository => repository.DeleteAsync(123), Times.Once);
+        repositoryMock.Verify(repository => repository.DeleteAsync(123, TestClinicId), Times.Once);
     }
 
     [Fact]
@@ -123,19 +127,22 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "When someone asks for request 123,
         // return this request."
-        repositoryMock.Setup(repository => repository.GetByIdAsync(123)).ReturnsAsync(request);
+        repositoryMock
+            .Setup(repository => repository.GetByIdAsync(123, TestClinicId))
+            .ReturnsAsync(request);
 
         // Teach the fake repository:
         // "When this request is saved,
         // pretend the save worked and return true."
-        repositoryMock.Setup(repository => repository.UpdateAsync(request)).ReturnsAsync(true);
-
+        repositoryMock
+            .Setup(repository => repository.UpdateAsync(request, TestClinicId))
+            .ReturnsAsync(true);
         // Create the real service using the fake repository.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        bool result = await service.UpdateStatusAsync(123, RequestStatus.Completed);
+        bool result = await service.UpdateStatusAsync(123, RequestStatus.Completed, TestClinicId);
 
         // Assert
 
@@ -147,7 +154,10 @@ public class IntakeServiceTests
 
         // Check that the service asked the repository
         // to save the request exactly one time.
-        repositoryMock.Verify(repository => repository.UpdateAsync(request), Times.Once);
+        repositoryMock.Verify(
+            repository => repository.UpdateAsync(request, TestClinicId),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -157,13 +167,13 @@ public class IntakeServiceTests
         var repositoryMock = new Mock<IIntakeRepository>();
 
         repositoryMock
-            .Setup(repository => repository.GetByIdAsync(123))
+            .Setup(repository => repository.GetByIdAsync(123, TestClinicId))
             .ReturnsAsync((IntakeRequest?)null);
 
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
-        bool result = await service.UpdateStatusAsync(123, RequestStatus.Completed);
+        bool result = await service.UpdateStatusAsync(123, RequestStatus.Completed, TestClinicId);
 
         // Assert
         Assert.False(result);
@@ -208,14 +218,16 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "When GetAllAsync() is called,
         // return all three requests."
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         // Create the service.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        var result = await service.GetCompletedRequestsAsync();
+        var result = await service.GetCompletedRequestsAsync(TestClinicId);
 
         // Turn the result into a list so it is easy to check.
         var completedRequests = result.ToList();
@@ -271,14 +283,16 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "When GetAllAsync() is called,
         // return all three requests."
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         // Create the service.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        var result = await service.GetCompletedRequestsAsync();
+        var result = await service.GetCompletedRequestsAsync(TestClinicId);
 
         // Assert
 
@@ -322,14 +336,16 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "When GetAllAsync() is called,
         // return all three requests."
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         // Create the service.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        int result = await service.GetRequestCountAsync();
+        int result = await service.GetRequestCountAsync(TestClinicId);
 
         // Assert
 
@@ -349,14 +365,16 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "When someone asks for all requests,
         // return an empty list."
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         // Create the service.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        int result = await service.GetRequestCountAsync();
+        int result = await service.GetRequestCountAsync(TestClinicId);
 
         // Assert
 
@@ -403,7 +421,9 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "When GetAllAsync() is called,
         // return these three requests."
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         var service = new IntakeService(repositoryMock.Object);
 
@@ -415,7 +435,8 @@ public class IntakeServiceTests
             patient: null,
             sort: null,
             page: 1,
-            pageSize: 10
+            pageSize: 10,
+            clinicId: TestClinicId
         );
 
         var items = result.Items.ToList();
@@ -483,7 +504,9 @@ public class IntakeServiceTests
         // Teach the fake repository:
         // "When GetAllAsync() is called,
         // return all five requests."
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         var service = new IntakeService(repositoryMock.Object);
 
@@ -501,7 +524,8 @@ public class IntakeServiceTests
             patient: null,
             sort: null,
             page: 2,
-            pageSize: 2
+            pageSize: 2,
+            clinicId: TestClinicId
         );
 
         var items = result.Items.ToList();
@@ -587,7 +611,9 @@ public class IntakeServiceTests
 
         var requests = new List<IntakeRequest> { request1, request2, request3 };
 
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         var service = new IntakeService(repositoryMock.Object);
 
@@ -599,7 +625,8 @@ public class IntakeServiceTests
             patient: "Larsen",
             sort: null,
             page: 1,
-            pageSize: 10
+            pageSize: 10,
+            clinicId: TestClinicId
         );
 
         var items = result.Items.ToList();
@@ -672,7 +699,9 @@ public class IntakeServiceTests
 
         var requests = new List<IntakeRequest> { request1, request2, request3 };
 
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         var service = new IntakeService(repositoryMock.Object);
 
@@ -683,7 +712,8 @@ public class IntakeServiceTests
             patient: null,
             sort: "name",
             page: 1,
-            pageSize: 10
+            pageSize: 10,
+            clinicId: TestClinicId
         );
 
         var items = result.Items.ToList();
@@ -752,7 +782,9 @@ public class IntakeServiceTests
             },
         };
 
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         var service = new IntakeService(repositoryMock.Object);
 
@@ -762,7 +794,8 @@ public class IntakeServiceTests
             patient: null,
             sort: "name_desc",
             page: 1,
-            pageSize: 10
+            pageSize: 10,
+            clinicId: TestClinicId
         );
 
         var items = result.Items.ToList();
@@ -789,7 +822,7 @@ public class IntakeServiceTests
         };
 
         repositoryMock
-            .Setup(repository => repository.GetAllAsync())
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
             .ReturnsAsync(new List<IntakeRequest> { request });
 
         var service = new IntakeService(repositoryMock.Object);
@@ -800,7 +833,8 @@ public class IntakeServiceTests
             patient: null,
             sort: null,
             page: 1,
-            pageSize: 10
+            pageSize: 10,
+            clinicId: TestClinicId
         );
 
         var item = result.Items.Single();
@@ -851,7 +885,9 @@ public class IntakeServiceTests
             },
         };
 
-        repositoryMock.Setup(repository => repository.GetAllAsync()).ReturnsAsync(requests);
+        repositoryMock
+            .Setup(repository => repository.GetAllAsync(TestClinicId))
+            .ReturnsAsync(requests);
 
         var service = new IntakeService(repositoryMock.Object);
 
@@ -861,7 +897,8 @@ public class IntakeServiceTests
             patient: "AND",
             sort: null,
             page: 1,
-            pageSize: 10
+            pageSize: 10,
+            clinicId: TestClinicId
         );
 
         var items = result.Items.ToList();
