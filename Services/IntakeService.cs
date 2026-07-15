@@ -14,28 +14,31 @@ public class IntakeService : IIntakeService
         _repository = repository;
     }
 
-    public async Task<IntakeRequest?> AddRequestAsync(int patientId)
+    public async Task<IntakeRequest?> AddRequestAsync(int patientId, int clinicId)
     {
-        Patient? patient = await _repository.GetPatientByIdAsync(patientId);
+        // Find the patient only within the authenticated clinic.
+        Patient? patient = await _repository.GetPatientByIdAsync(patientId, clinicId);
 
         if (patient is null)
         {
             return null;
         }
 
-        IntakeRequest request = new() { PatientId = patient.Id, ClinicId = patient.ClinicId };
+        // The clinic comes from the trusted JWT claim,
+        // not from client-supplied JSON.
+        IntakeRequest request = new() { PatientId = patient.Id, ClinicId = clinicId };
 
-        return await _repository.AddAsync(request);
+        return await _repository.AddAsync(request, clinicId);
     }
 
-    public async Task<IntakeRequest?> FindRequestByIdAsync(int id)
+    public async Task<IntakeRequest?> FindRequestByIdAsync(int id, int clinicId)
     {
-        return await _repository.GetByIdAsync(id);
+        return await _repository.GetByIdAsync(id, clinicId);
     }
 
-    public async Task<bool> UpdateStatusAsync(int id, RequestStatus status)
+    public async Task<bool> UpdateStatusAsync(int id, RequestStatus status, int clinicId)
     {
-        IntakeRequest? request = await FindRequestByIdAsync(id);
+        IntakeRequest? request = await FindRequestByIdAsync(id, clinicId);
 
         if (request is null)
         {
@@ -44,55 +47,62 @@ public class IntakeService : IIntakeService
 
         request.UpdateStatus(status);
 
-        return await _repository.UpdateAsync(request);
+        return await _repository.UpdateAsync(request, clinicId);
     }
 
-    public async Task<int> GetRequestCountAsync()
+    public async Task<int> GetRequestCountAsync(int clinicId)
     {
-        var requests = await _repository.GetAllAsync();
+        IEnumerable<IntakeRequest> requests = await _repository.GetAllAsync(clinicId);
+
         return requests.Count();
     }
 
-    public async Task<IEnumerable<IntakeRequest>> GetAllRequestsAsync()
+    public async Task<IEnumerable<IntakeRequest>> GetAllRequestsAsync(int clinicId)
     {
-        return await _repository.GetAllAsync();
+        return await _repository.GetAllAsync(clinicId);
     }
 
-    public async Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync()
+    public async Task<IEnumerable<IntakeRequest>> GetCompletedRequestsAsync(int clinicId)
     {
-        var requests = await _repository.GetAllAsync();
+        IEnumerable<IntakeRequest> requests = await _repository.GetAllAsync(clinicId);
+
         return requests.Where(request => request.Status == RequestStatus.Completed);
     }
 
     private async Task<IEnumerable<IntakeRequest>> BuildRequestQueryAsync(
         RequestStatus? status,
         string? patient,
-        string? sort
+        string? sort,
+        int clinicId
     )
     {
-        IEnumerable<IntakeRequest> requests = await _repository.GetAllAsync();
+        // The initial collection already contains only
+        // records belonging to this clinic.
+        IEnumerable<IntakeRequest> requests = await _repository.GetAllAsync(clinicId);
 
         if (status is not null)
         {
-            requests = requests.Where(r => r.Status == status.Value);
+            requests = requests.Where(request => request.Status == status.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(patient))
         {
-            requests = requests.Where(r =>
-                r.Patient is not null
-                && r.Patient.GetFullName().Contains(patient, StringComparison.OrdinalIgnoreCase)
+            requests = requests.Where(request =>
+                request.Patient is not null
+                && request
+                    .Patient.GetFullName()
+                    .Contains(patient, StringComparison.OrdinalIgnoreCase)
             );
         }
 
         if (sort == "name")
         {
-            requests = requests.OrderBy(r => r.Patient?.GetFullName());
+            requests = requests.OrderBy(request => request.Patient?.GetFullName());
         }
 
         if (sort == "name_desc")
         {
-            requests = requests.OrderByDescending(r => r.Patient?.GetFullName());
+            requests = requests.OrderByDescending(request => request.Patient?.GetFullName());
         }
 
         return requests;
@@ -103,10 +113,16 @@ public class IntakeService : IIntakeService
         string? patient,
         string? sort,
         int page,
-        int pageSize
+        int pageSize,
+        int clinicId
     )
     {
-        IEnumerable<IntakeRequest> requests = await BuildRequestQueryAsync(status, patient, sort);
+        IEnumerable<IntakeRequest> requests = await BuildRequestQueryAsync(
+            status,
+            patient,
+            sort,
+            clinicId
+        );
 
         int totalCount = requests.Count();
 
@@ -115,20 +131,21 @@ public class IntakeService : IIntakeService
         IEnumerable<RequestSummaryDto> items = requests
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(r =>
+            .Select(request =>
             {
-                string patientName = r.Patient?.GetFullName() ?? "Unknown Patient";
+                string patientName = request.Patient?.GetFullName() ?? "Unknown Patient";
 
-                string clinicName = r.Clinic?.Name ?? "Unknown Clinic";
+                string clinicName = request.Clinic?.Name ?? "Unknown Clinic";
 
                 return new RequestSummaryDto
                 {
-                    Id = r.Id,
+                    Id = request.Id,
                     PatientName = patientName,
                     ClinicName = clinicName,
-                    DisplayText = $"{patientName} - {r.Status} - {clinicName}",
+                    DisplayText = $"{patientName} - {request.Status} - {clinicName}",
                 };
             });
+
         return new PagedResponse<RequestSummaryDto>
         {
             Page = page,
@@ -139,8 +156,8 @@ public class IntakeService : IIntakeService
         };
     }
 
-    public async Task<bool> DeleteRequestAsync(int id)
+    public async Task<bool> DeleteRequestAsync(int id, int clinicId)
     {
-        return await _repository.DeleteAsync(id);
+        return await _repository.DeleteAsync(id, clinicId);
     }
 }

@@ -27,44 +27,69 @@ public class InMemoryIntakeRepository : IIntakeRepository
         },
     ];
 
-    public async Task<IntakeRequest> AddAsync(IntakeRequest request)
+    public Task<IntakeRequest> AddAsync(IntakeRequest request, int clinicId)
     {
+        // Refuse to add a record belonging to another clinic.
+        if (request.ClinicId != clinicId)
+        {
+            throw new InvalidOperationException("Cannot add a request for another clinic.");
+        }
+
         _requests.Add(request);
-        return await Task.FromResult(request);
+
+        return Task.FromResult(request);
     }
 
-    public async Task<IEnumerable<IntakeRequest>> GetAllAsync()
+    public Task<IEnumerable<IntakeRequest>> GetAllAsync(int clinicId)
     {
-        return await Task.FromResult(_requests);
+        IEnumerable<IntakeRequest> requests = _requests
+            .Where(request => request.ClinicId == clinicId)
+            .ToList();
+
+        return Task.FromResult(requests);
     }
 
-    public async Task<IntakeRequest?> GetByIdAsync(int id)
+    public Task<IntakeRequest?> GetByIdAsync(int id, int clinicId)
     {
-        return await Task.FromResult(_requests.FirstOrDefault(r => r.Id == id));
+        IntakeRequest? request = _requests.FirstOrDefault(request =>
+            request.Id == id && request.ClinicId == clinicId
+        );
+
+        return Task.FromResult(request);
     }
 
-    public async Task<bool> UpdateAsync(IntakeRequest request)
+    public Task<bool> UpdateAsync(IntakeRequest request, int clinicId)
     {
-        // In-memory repository doesn't have a real database,
-        // so we just pretend the update worked.
-        return await Task.FromResult(true);
+        // The request must belong to the authenticated clinic
+        // and must already exist in this repository.
+        bool exists =
+            request.ClinicId == clinicId
+            && _requests.Any(existingRequest =>
+                existingRequest.Id == request.Id && existingRequest.ClinicId == clinicId
+            );
+
+        // The object stored in the list is already updated
+        // because the service modified that same object.
+        return Task.FromResult(exists);
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, int clinicId)
     {
-        IntakeRequest? request = await GetByIdAsync(id);
+        IntakeRequest? request = await GetByIdAsync(id, clinicId);
 
         if (request is null)
         {
             return false;
         }
 
-        return await Task.FromResult(_requests.Remove(request));
+        return _requests.Remove(request);
     }
 
-    public Task<Patient?> GetPatientByIdAsync(int patientId)
+    public Task<Patient?> GetPatientByIdAsync(int patientId, int clinicId)
     {
-        Patient? patient = _patients.FirstOrDefault(p => p.Id == patientId);
+        Patient? patient = _patients.FirstOrDefault(patient =>
+            patient.Id == patientId && patient.ClinicId == clinicId
+        );
 
         return Task.FromResult(patient);
     }
