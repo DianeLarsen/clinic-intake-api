@@ -64,17 +64,27 @@ public class RequestsApiTests
         _client = factory.CreateClient();
     }
 }
+```
 
-Program.cs requirement
+## Program.cs Requirement
 
-Because Program.cs uses top-level statements, tests need:
+Because `Program.cs` uses top-level statements, integration tests need this at the bottom of `Program.cs`:
 
+```csharp
 public partial class Program { }
+```
 
-at the bottom of Program.cs.
+This lets `WebApplicationFactory<Program>` locate the application entry point.
 
-Common integration test flow
-Arrange test data.
-Send an HTTP request.
-Read the response.
-Verify the database changed.
+## Common Integration-Test Flow
+
+1. Arrange test data.
+2. Send an HTTP request.
+3. Read the HTTP response.
+4. Verify the response and any database changes.
+
+## Database Isolation
+
+Integration tests must use a database created for testing, never the application's normal development database.
+
+See [Isolated Integration-Test Databases](Isolated-Integration-Test-Databases.md) for the implementation used by this project.

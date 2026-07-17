@@ -1,13 +1,33 @@
+using ClinicIntakeApi.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ClinicIntakeApi.Tests.Integration;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    //
+    // Each test factory receives its own SQLite database file.
+    //
+    // Guid.NewGuid() prevents separate test runs from choosing
+    // the same file name.
+    //
+    private readonly string _databasePath = Path.Combine(
+        Path.GetTempPath(),
+        $"clinic-intake-tests-{Guid.NewGuid():N}.db"
+    );
+
+    //
+    // Exposes the test database location so integration tests
+    // can verify the factory created an isolated database.
+    //
+    public string DatabasePath => _databasePath;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Make the application use its Testing environment.
@@ -16,6 +36,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // Configure services only inside the test server.
         builder.ConfigureTestServices(services =>
         {
+            //
+            // Remove the DbContext registration created in Program.cs.
+            //
+            // The application normally uses clinic-intake.db.
+            // Tests must use the temporary file created above instead.
+            //
+            services.RemoveAll<DbContextOptions<ClinicIntakeDbContext>>();
+
+            //
+            // Register ClinicIntakeDbContext again, but point it at this
+            // factory's unique temporary SQLite database.
+            //
+            services.AddDbContext<ClinicIntakeDbContext>(options =>
+                options.UseSqlite($"Data Source={_databasePath}")
+            );
+
             // Replace the application's default JWT scheme
             // with our predictable test authentication scheme.
             services
@@ -25,5 +61,21 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                     options => { }
                 );
         });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        //
+        // Dispose the test server first so it releases SQLite connections.
+        //
+        base.Dispose(disposing);
+
+        //
+        // Delete the temporary test database after the factory is finished.
+        //
+        if (disposing && File.Exists(_databasePath))
+        {
+            File.Delete(_databasePath);
+        }
     }
 }
