@@ -242,23 +242,30 @@ This makes logs easier to search and analyze.
 
 # Logging in Middleware
 
-Example:
+The API records one complete summary after each request finishes.
 
 ```csharp
 public async Task InvokeAsync(HttpContext context)
 {
-    _logger.LogInformation(
-        "--> {Method} {Path}",
-        context.Request.Method,
-        context.Request.Path
-    );
+    Stopwatch stopwatch = Stopwatch.StartNew();
 
-    await _next(context);
+    try
+    {
+        await _next(context);
+    }
+    finally
+    {
+        stopwatch.Stop();
 
-    _logger.LogInformation(
-        "<-- {StatusCode}",
-        context.Response.StatusCode
-    );
+        _logger.LogInformation(
+            "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMilliseconds} ms with trace {TraceIdentifier}",
+            context.Request.Method,
+            context.Request.Path,
+            context.Response.StatusCode,
+            Math.Round(stopwatch.Elapsed.TotalMilliseconds, 2),
+            context.TraceIdentifier
+        );
+    }
 }
 ```
 
@@ -266,11 +273,10 @@ Example output:
 
 ```text
 info: ClinicIntakeApi.Middleware.RequestLoggingMiddleware[0]
-      --> GET /api/v1/requests
-
-info: ClinicIntakeApi.Middleware.RequestLoggingMiddleware[0]
-      <-- 200
+      HTTP GET /health/live responded 200 in 21.08 ms with trace 0HNN44D5D6BH6:00000001
 ```
+
+The log includes the request method, path, response status, duration, and trace identifier in one entry.
 
 ---
 
