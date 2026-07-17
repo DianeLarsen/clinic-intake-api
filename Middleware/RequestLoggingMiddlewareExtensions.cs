@@ -7,15 +7,6 @@ public static class RequestLoggingMiddlewareExtensions
         return app.UseMiddleware<RequestLoggingMiddleware>();
     }
 
-    public static IApplicationBuilder UseFirstMiddleware(this IApplicationBuilder app)
-    {
-        return app.UseMiddleware<FirstMiddleware>();
-    }
-
-    public static IApplicationBuilder UseSecondMiddleware(this IApplicationBuilder app)
-    {
-        return app.UseMiddleware<SecondMiddleware>();
-    }
 
     public static IApplicationBuilder UseExceptionHandling(this IApplicationBuilder app)
     {

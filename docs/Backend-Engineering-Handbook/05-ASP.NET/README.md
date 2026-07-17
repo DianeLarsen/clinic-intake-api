@@ -81,6 +81,20 @@ Examples include:
 
 ---
 
+### Logging
+
+Logging records what the API does while it runs and provides evidence when something fails.
+
+Topics include:
+
+- [Logging Fundamentals](Logging.md)
+- [Structured Logging](Structured-Logging.md)
+- Log levels and filtering
+- Request duration and trace IDs
+- Exception logging
+
+---
+
 ### Program.cs
 
 `Program.cs` is the application's entry point.

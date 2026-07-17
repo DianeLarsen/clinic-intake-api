@@ -210,15 +210,14 @@ if (!app.Environment.IsEnvironment("Testing"))
     app.UseHttpsRedirection();
 }
 
-app.UseExceptionHandling();
-
-//
-// Log every incoming request and outgoing response.
-//
+// Wrap the remaining pipeline and record the final response,
+// including responses produced by exception handling.
 app.UseRequestLogging();
 
-// app.UseFirstMiddleware();
-// app.UseSecondMiddleware();
+// Convert unhandled downstream exceptions into safe
+// 500 Internal Server Error responses.
+app.UseExceptionHandling();
+
 
 //
 // Identify the user from the request's authentication token.

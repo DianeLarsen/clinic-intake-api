@@ -75,6 +75,10 @@ public class RequestsController : ControllerBase
     // from the "Pagination" configuration section.
     private readonly PaginationOptions _paginationOptions;
 
+    // Creates structured log entries labeled
+    // with the RequestsController category.
+    private readonly ILogger<RequestsController> _logger;
+
     //
     // Constructor
     //
@@ -85,14 +89,17 @@ public class RequestsController : ControllerBase
     //
     public RequestsController(
         IIntakeService intakeService,
-        IOptions<PaginationOptions> paginationOptions
+        IOptions<PaginationOptions> paginationOptions,
+        ILogger<RequestsController> logger
     )
     {
         _intakeService = intakeService;
 
-        // IOptions<T> is a wrapper provided by ASP.NET.
-        // .Value retrieves the actual PaginationOptions object.
+        // Retrieve the pagination settings
+        // from the IOptions<T> wrapper.
         _paginationOptions = paginationOptions.Value;
+
+        _logger = logger;
     }
 
     //
@@ -201,6 +208,11 @@ public class RequestsController : ControllerBase
 
         if (request is null)
         {
+            _logger.LogInformation(
+                "Could not create intake request because patient {PatientId} was not found for clinic {ClinicId}",
+                dto.PatientId,
+                clinicId
+            );
             return BadRequest($"Patient with ID {dto.PatientId} does not exist.");
         }
 
@@ -211,6 +223,13 @@ public class RequestsController : ControllerBase
             ClinicId = request.ClinicId,
             Status = request.Status,
         };
+
+        _logger.LogInformation(
+            "Created intake request {RequestId} for patient {PatientId} in clinic {ClinicId}",
+            request.Id,
+            request.PatientId,
+            request.ClinicId
+        );
 
         return CreatedAtAction(
             nameof(GetById),
@@ -234,11 +253,29 @@ public class RequestsController : ControllerBase
     {
         int clinicId = User.GetRequiredClinicId();
 
-        Console.WriteLine($"Received request to update status of request {id} to {dto.Status}");
-
         bool updated = await _intakeService.UpdateStatusAsync(id, dto.Status, clinicId);
 
-        return updated ? NoContent() : NotFound();
+        if (!updated)
+        {
+            // A missing record is a normal application outcome,
+            // so record it as Information rather than Error.
+            _logger.LogInformation(
+                "Intake request {RequestId} was not found for clinic {ClinicId} during status update",
+                id,
+                clinicId
+            );
+
+            return NotFound();
+        }
+
+        _logger.LogInformation(
+            "Updated intake request {RequestId} to {Status} for clinic {ClinicId}",
+            id,
+            dto.Status,
+            clinicId
+        );
+
+        return NoContent();
     }
 
     //
@@ -256,7 +293,24 @@ public class RequestsController : ControllerBase
 
         bool deleted = await _intakeService.DeleteRequestAsync(id, clinicId);
 
-        return deleted ? NoContent() : NotFound();
+        if (!deleted)
+        {
+            _logger.LogInformation(
+                "Intake request {RequestId} was not found for clinic {ClinicId} during deletion",
+                id,
+                clinicId
+            );
+
+            return NotFound();
+        }
+
+        _logger.LogInformation(
+            "Deleted intake request {RequestId} from clinic {ClinicId}",
+            id,
+            clinicId
+        );
+
+        return NoContent();
     }
 
     // to test exception handling middleware

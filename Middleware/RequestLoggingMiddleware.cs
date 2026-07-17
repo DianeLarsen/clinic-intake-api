@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ClinicIntakeApi.Middleware;
 
 //
@@ -84,44 +86,54 @@ public class RequestLoggingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         //
-        // This code executes BEFORE the controller.
+        // Start timing before the request continues through
+        // the rest of the middleware pipeline.
         //
-        // LogInformation() creates an informational log entry.
-        //
-        // The placeholders:
-        //
-        //     {Method}
-        //     {Path}
-        //
-        // are examples of structured logging.
-        //
-        // ASP.NET stores the values separately instead of
-        // building one large string.
-        //
-        // Example:
-        //
-        // --> GET /api/v1/requests
-        //
-        _logger.LogInformation("--> {Method} {Path}", context.Request.Method, context.Request.Path);
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-        //
-        // Pass control to the next middleware.
-        //
-        // Execution pauses here until the rest of the
-        // pipeline has finished processing the request.
-        //
-        await _next(context);
+        try
+        {
+            //
+            // Pass control to the next middleware.
+            //
+            // Execution pauses here until the rest of the
+            // pipeline finishes processing the request.
+            //
+            await _next(context);
+        }
+        finally
+        {
+            //
+            // finally runs whether the request succeeds or
+            // an exception is handled farther down the pipeline.
+            //
+            stopwatch.Stop();
 
-        //
-        // This code executes AFTER the controller
-        // and the remaining middleware complete.
-        //
-        // The response has now been generated.
-        //
-        // Example:
-        //
-        // <-- 200
-        //
-        _logger.LogInformation("<-- {StatusCode}", context.Response.StatusCode);
+            //
+            // Convert the elapsed time into milliseconds and
+            // round it for easier reading in the log output.
+            //
+            double elapsedMilliseconds = Math.Round(stopwatch.Elapsed.TotalMilliseconds, 2);
+
+            //
+            // Record one structured summary for the completed request.
+            //
+            // The named placeholders become searchable fields:
+            //
+            // {Method}
+            // {Path}
+            // {StatusCode}
+            // {ElapsedMilliseconds}
+            // {TraceIdentifier}
+            //
+            _logger.LogInformation(
+                "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMilliseconds} ms with trace {TraceIdentifier}",
+                context.Request.Method,
+                context.Request.Path,
+                context.Response.StatusCode,
+                elapsedMilliseconds,
+                context.TraceIdentifier
+            );
+        }
     }
 }
