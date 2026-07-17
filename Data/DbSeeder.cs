@@ -1,5 +1,6 @@
 using ClinicIntakeApi.Models;
 using ClinicIntakeApi.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace ClinicIntakeApi.Data;
 
@@ -23,8 +24,12 @@ public static class DbSeeder
         ClinicIntakeDbContext db =
             scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
 
-        // Create the database and tables if they do not exist.
-        await db.Database.EnsureCreatedAsync();
+        // Apply any Entity Framework migrations that have not yet
+        // been recorded in the database's migration history.
+        //
+        // This creates a new database when needed and keeps an
+        // existing database schema aligned with the migration files.
+        await db.Database.MigrateAsync();
 
         // Get the service used to create and update requests.
         IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();

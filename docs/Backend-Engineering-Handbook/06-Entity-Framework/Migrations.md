@@ -82,12 +82,12 @@ It created tables like:
 
 ```text
 IntakeRequests
-_EFMigrationsHistory
+__EFMigrationsHistory
 ```
 
 The `IntakeRequests` table came from the `IntakeRequest` model.
 
-The `_EFMigrationsHistory` table is used by EF Core to track which migrations have already been applied.
+The `__EFMigrationsHistory` table is used by EF Core to track which migrations have already been applied.
 
 ## Code Example
 
@@ -148,9 +148,9 @@ In this project, it created or updated:
 clinic-intake.db
 ```
 
-### What is `_EFMigrationsHistory`?
+### What is `__EFMigrationsHistory`?
 
-`_EFMigrationsHistory` is a table EF Core creates to remember which migrations have already been applied.
+`__EFMigrationsHistory` is a table EF Core creates to remember which migrations have already been applied.
 
 This prevents EF Core from running the same migration over and over.
 
@@ -197,7 +197,35 @@ Migrations are version-controlled instructions that tell EF Core how to create o
 * Migrations are like Git commits for the database schema.
 * `migrations add` creates the instructions.
 * `database update` applies the instructions.
-* `_EFMigrationsHistory` tracks what has already been applied.
+* `__EFMigrationsHistory` tracks what has already been applied.
+
+## Applying Migrations When the API Starts
+
+The Clinic Intake API applies pending migrations during startup.
+
+```csharp
+await db.Database.MigrateAsync();
+```
+
+This code runs in `DbSeeder.SeedAsync()` before sample data is added.
+
+`MigrateAsync()`:
+
+1. Creates the database if it does not exist.
+2. Reads the `__EFMigrationsHistory` table.
+3. Applies only migrations that have not already been recorded.
+4. Records each applied migration in the history table.
+
+This is different from `EnsureCreatedAsync()`.
+
+| Method | Purpose | Migration history |
+| --- | --- | --- |
+| `EnsureCreatedAsync()` | Quickly creates tables directly from the current model. | Does not use migrations. |
+| `MigrateAsync()` | Creates or updates a database by applying migration files in order. | Uses `__EFMigrationsHistory`. |
+
+A database created with `EnsureCreatedAsync()` should not later be treated as a migration-managed database. During development, the safe approach is to delete disposable sample data and rebuild it from migrations.
+
+The project verified migration-based startup by deleting the local `clinic-intake.db`, starting the API, and confirming all migrations appeared in `__EFMigrationsHistory`.
 
 ## Development Notes
 
@@ -215,10 +243,10 @@ rm clinic-intake.db
 3. Recreate the database from the existing migrations:
 
 ```bash
-dotnet ef database update
+dotnet run
 ```
 
-This creates a fresh database using the current migration history.
+Starting the API applies the migrations through `MigrateAsync()` and then recreates the sample seed data.
 
 > **Note:** Only do this during development. Never delete a production database to apply changes.
 
