@@ -152,9 +152,32 @@ string connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
+//
+// Select the Entity Framework database provider from configuration.
+//
+// Local development uses SQLite by default.
+// Azure will later set Database:Provider to SqlServer and provide
+// an Azure SQL connection string through environment configuration.
+//
+string databaseProvider = builder.Configuration["Database:Provider"] ?? "Sqlite";
+
 builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
-    options.UseSqlite(connectionString)
-);
+{
+    if (databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseSqlite(connectionString);
+    }
+    else if (databaseProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseSqlServer(connectionString);
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            $"Database provider '{databaseProvider}' is not supported."
+        );
+    }
+});
 
 //
 // Register application health checks.
@@ -217,7 +240,6 @@ app.UseRequestLogging();
 // Convert unhandled downstream exceptions into safe
 // 500 Internal Server Error responses.
 app.UseExceptionHandling();
-
 
 //
 // Identify the user from the request's authentication token.
