@@ -1,0 +1,44 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Give the workflow only the repository read access it needs.
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    # Run the API and test suite on a fresh Linux virtual machine.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the exact commit that triggered this workflow.
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install the .NET 8 SDK required by this project.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+
+      # Download NuGet packages listed by the solution's projects.
+      - name: Restore dependencies
+        run: dotnet restore ClinicIntakeApi.sln
+
+      # Compile the API and test project in Release mode.
+      - name: Build
+        run: dotnet build ClinicIntakeApi.sln --configuration Release --no-restore
+
+      # Run all unit and integration tests.
+      - name: Run tests
+        run: dotnet test ClinicIntakeApi.sln --configuration Release --no-build --verbosity normal
