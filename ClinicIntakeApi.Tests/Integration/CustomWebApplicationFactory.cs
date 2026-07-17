@@ -78,4 +78,35 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             File.Delete(_databasePath);
         }
     }
+
+    //
+    // Restores this factory's test database to its original
+    // empty-and-seeded state.
+    //
+    // Integration tests can call this before each test method
+    // so one test's database changes do not affect another test.
+    //
+    public async Task ResetDatabaseAsync()
+    {
+        //
+        // Delete all tables and data from this factory's
+        // temporary SQLite database.
+        //
+        using (IServiceScope scope = Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            await db.Database.EnsureDeletedAsync();
+        }
+
+        //
+        // Run the normal application seeder again.
+        //
+        // DbSeeder creates the database, its tables, and the
+        // predictable sample clinics, patients, and requests
+        // used by integration tests.
+        //
+        await DbSeeder.SeedAsync(Services);
+    }
 }
