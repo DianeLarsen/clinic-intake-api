@@ -1,4 +1,8 @@
 using System.Net;
+using ClinicIntakeApi.Data;
+using ClinicIntakeApi.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ClinicIntakeApi.Tests.Integration;
 
@@ -56,5 +60,59 @@ public class CustomWebApplicationFactoryTests
         // The using block disposed the factory, which should remove
         // the temporary SQLite database file.
         Assert.False(File.Exists(databasePath));
+    }
+
+    [Fact]
+    public async Task ResetDatabaseAsync_RemovesDataCreatedBeforeTheReset()
+    {
+        // Arrange
+        using var factory = new CustomWebApplicationFactory();
+
+        // Start the server and create its initial seeded database.
+        using HttpClient client = factory.CreateClient();
+
+        HttpResponseMessage response = await client.GetAsync("/health/ready");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        const string testClinicName = "Temporary Reset Test Clinic";
+
+        // Add data that exists only for this test.
+        using (IServiceScope createScope = factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext createDb =
+                createScope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            createDb.Clinics.Add(new Clinic { Name = testClinicName });
+
+            await createDb.SaveChangesAsync();
+        }
+
+        // Confirm the test data exists before resetting the database.
+        using (IServiceScope beforeResetScope = factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext beforeResetDb =
+                beforeResetScope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            Assert.True(
+                await beforeResetDb.Clinics.AnyAsync(clinic => clinic.Name == testClinicName)
+            );
+        }
+
+        // Act
+        await factory.ResetDatabaseAsync();
+
+        // Assert
+        using (IServiceScope afterResetScope = factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext afterResetDb =
+                afterResetScope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            bool clinicStillExists = await afterResetDb.Clinics.AnyAsync(clinic =>
+                clinic.Name == testClinicName
+            );
+
+            Assert.False(clinicStillExists);
+        }
     }
 }

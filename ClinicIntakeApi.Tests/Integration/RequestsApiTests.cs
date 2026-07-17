@@ -6,15 +6,14 @@ using System.Text.Json.Serialization;
 using ClinicIntakeApi.Data;
 using ClinicIntakeApi.Dtos;
 using ClinicIntakeApi.Models;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ClinicIntakeApi.Tests.Integration;
 
-public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
+public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public RequestsApiTests(CustomWebApplicationFactory factory)
@@ -27,6 +26,26 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>
             "Bearer",
             "demo-token"
         );
+    }
+
+    //
+    // xUnit runs this before every test method in this class.
+    //
+    // Each test therefore starts with the same seeded database
+    // instead of data changed by an earlier test.
+    //
+    public Task InitializeAsync()
+    {
+        return _factory.ResetDatabaseAsync();
+    }
+
+    //
+    // No per-test cleanup is needed because the next test's
+    // InitializeAsync() call resets the database.
+    //
+    public Task DisposeAsync()
+    {
+        return Task.CompletedTask;
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)

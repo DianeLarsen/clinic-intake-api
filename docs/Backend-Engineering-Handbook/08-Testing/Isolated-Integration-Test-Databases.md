@@ -141,7 +141,7 @@ These tests protect the test infrastructure itself. If someone later removes the
 
 ---
 
-## Fixture Scope
+## Fixture Scope and Per-Test Reset
 
 Integration-test classes use:
 
@@ -149,13 +149,71 @@ Integration-test classes use:
 IClassFixture<CustomWebApplicationFactory>
 ```
 
-This means one test factory—and therefore one temporary database—is shared by tests in the same test class.
+This means one `CustomWebApplicationFactory` instance—and therefore one temporary database file—is shared by tests in the same class.
 
-Different test classes receive separate factory instances and separate database files.
+A shared fixture is efficient, but it creates a risk: one test can add, update, or delete data that another test later reads.
 
-Tests that create data should clean up records they create, or use records created specifically for that test.
+`RequestsApiTests` uses xUnit's `IAsyncLifetime` interface to reset the database before each test method.
 
-If future tests require stricter separation, the project can create a new factory or reset the database for each individual test.
+```csharp
+public class RequestsApiTests
+    : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
+{
+    public Task InitializeAsync()
+    {
+        return _factory.ResetDatabaseAsync();
+    }
+
+    public Task DisposeAsync()
+    {
+        return Task.CompletedTask;
+    }
+}
+```
+
+The lifecycle for every test method is:
+
+```text
+Create test-class instance
+        ↓
+InitializeAsync resets and seeds database
+        ↓
+Run one test method
+        ↓
+DisposeAsync
+        ↓
+Next test starts from the same seeded baseline
+```
+
+---
+
+## Resetting the Database
+
+`CustomWebApplicationFactory` provides a reusable reset method.
+
+```csharp
+public async Task ResetDatabaseAsync()
+{
+    using (IServiceScope scope = Services.CreateScope())
+    {
+        ClinicIntakeDbContext db =
+            scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+        await db.Database.EnsureDeletedAsync();
+    }
+
+    await DbSeeder.SeedAsync(Services);
+}
+```
+
+The reset process:
+
+1. Deletes the temporary database tables and data.
+2. Runs the normal application seeder again.
+3. Recreates the schema and predictable sample records.
+4. Leaves the development database untouched.
+
+`CustomWebApplicationFactoryTests` verifies that data created before a reset does not exist afterward.
 
 ---
 
@@ -164,6 +222,7 @@ If future tests require stricter separation, the project can create a new factor
 - Integration tests should never use the development database.
 - A unique temporary SQLite file gives each test factory an isolated database.
 - `ConfigureTestServices` can replace production service registrations for the test server only.
-- Startup seeding can create reliable test data.
+- Startup seeding creates reliable baseline data.
+- `IAsyncLifetime.InitializeAsync()` can reset shared fixture data before each test method.
+- Tests should verify their test infrastructure, not only application endpoints.
 - Disposing the factory removes temporary database files.
-- Tests should verify their own infrastructure, not only application endpoints.
