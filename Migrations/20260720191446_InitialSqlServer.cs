@@ -43,7 +43,7 @@ namespace ClinicIntakeApi.Migrations
                         column: x => x.ClinicId,
                         principalTable: "Clinics",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -64,7 +64,7 @@ namespace ClinicIntakeApi.Migrations
                         column: x => x.ClinicId,
                         principalTable: "Clinics",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_IntakeRequests_Patients_PatientId",
                         column: x => x.PatientId,
