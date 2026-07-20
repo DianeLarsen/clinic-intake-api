@@ -5,3 +5,5 @@ This section covers deploying and operating backend applications in Microsoft Az
 Topics include Azure SQL, App Service, Storage, Functions, Service Bus, Application Insights, deployment, and cloud architecture.
 
 The goal is to understand how backend applications move from a local development environment into production.
+
+- [Deployment](Deployment.md) — Deploying the Clinic Intake API to Azure App Service and Azure SQL.
