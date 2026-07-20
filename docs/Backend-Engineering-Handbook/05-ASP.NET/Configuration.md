@@ -75,6 +75,9 @@ Pagination:DefaultPageSize = 3
   "ConnectionStrings": {
     "DefaultConnection": "Data Source=clinic-intake.db"
   },
+  "Database": {
+    "Provider": "Sqlite"
+  },
   "Pagination": {
     "DefaultPageSize": 10,
     "MaximumPageSize": 100
@@ -108,9 +111,7 @@ For this project, that file contains local JWT information:
   "Authentication": {
     "Schemes": {
       "Bearer": {
-        "ValidAudiences": [
-          "http://localhost:5090"
-        ],
+        "ValidAudiences": ["http://localhost:5090"],
         "ValidIssuer": "dotnet-user-jwts"
       }
     }
@@ -167,6 +168,45 @@ ConnectionStrings:DefaultConnection
 
 This code fails immediately if the required value is missing. That is better than starting successfully and failing during the first database request.
 
+## Selecting a Database Provider
+
+The Clinic Intake API reads the database provider from configuration:
+
+```csharp
+string databaseProvider =
+    builder.Configuration["Database:Provider"] ?? "Sqlite";
+```
+
+Supported values are:
+
+| Provider value | Entity Framework provider | Intended use                                     |
+| -------------- | ------------------------- | ------------------------------------------------ |
+| `Sqlite`       | `UseSqlite()`             | Local development and isolated integration tests |
+| `SqlServer`    | `UseSqlServer()`          | Azure SQL or another SQL Server database         |
+
+The default is `Sqlite`, so local development continues to use:
+
+```text
+Data Source=clinic-intake.db
+```
+
+An Azure deployment will eventually use environment settings like:
+
+```text
+Database__Provider = SqlServer
+ConnectionStrings__DefaultConnection = <Azure SQL connection string>
+```
+
+The connection string is a secret and must be configured in Azure, not committed to `appsettings.json`.
+
+### Provider-Specific Migrations
+
+SQLite and SQL Server use different SQL dialects and column definitions.
+
+The project's existing migrations were generated for SQLite. Setting `Database__Provider` to `SqlServer` is not enough by itself to deploy to Azure SQL; the project must also add SQL Server-compatible migrations.
+
+This configuration change creates the provider-selection seam first. SQL Server migration support is the next Azure-readiness step.
+
 ## Environment-Variable Overrides
 
 This command temporarily changes the default page size for one process:
@@ -183,6 +223,7 @@ Azure App Settings use the same configuration-key format. An Azure setting named
 ```text
 Pagination__DefaultPageSize
 ```
+Database__Provider = SqlServer
 
 overrides the JSON value without rebuilding the application.
 
@@ -297,3 +338,6 @@ Fail fast
 ## Reference
 
 - [Configuration in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/)
+
+
+The project now contains a SQL Server baseline migration named `InitialSqlServer`. Azure SQL uses that migration history through `MigrateAsync()`, while disposable SQLite development and test databases use `EnsureCreatedAsync()`.

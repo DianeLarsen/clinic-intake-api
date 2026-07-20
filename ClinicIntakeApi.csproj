@@ -29,6 +29,7 @@
 
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.*" />
 
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
     <PackageReference
       Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore"
       Version="8.0.28"
