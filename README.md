@@ -1,98 +1,99 @@
 # Clinic Intake API
 
-A backend REST API built with **ASP.NET Core** and **C#** as a long-term learning project focused on modern backend engineering practices.
+A production-deployed REST API for managing clinic intake requests. Built with ASP.NET Core and C# as a long-term backend engineering learning project focused on clean architecture, security, testing, and cloud deployment.
 
-Rather than simply building a CRUD application, this project incrementally explores professional backend architecture, documenting each concept in a companion **Backend Engineering Handbook**.
-
----
-
-# Features
-
-- RESTful API endpoints
-- CRUD operations
-- Minimal APIs (currently)
-- Controller migration (in progress)
-- Dependency Injection
-- Service Layer
-- Repository Pattern
-- DTO Mapping
-- Validation
-- Filtering
-- Searching
-- Sorting
-- Pagination
-- Entity Framework Core
-- SQLite database
-- Database migrations
-- One-to-many relationships
-- Swagger / OpenAPI documentation
+**Live API:** https://clinic-intake-api-dlarsen-2026-dhdmdmesgkgygpbz.westus-01.azurewebsites.net  
+**Live health check:** https://clinic-intake-api-dlarsen-2026-dhdmdmesgkgygpbz.westus-01.azurewebsites.net/health/ready
 
 ---
 
-# Architecture
+## Features
 
-```
+- ASP.NET Core Web API with controllers
+- Layered architecture: Controllers → Services → Repositories → EF Core
+- JWT authentication and role-based authorization
+- Clinic-based data isolation using `ClinicId` claims
+- API versioning, validation, filtering, sorting, searching, and pagination
+- Structured logging and custom middleware
+- Health checks for application liveness and database readiness
+- Swagger / OpenAPI in Development
+- SQLite for local development and automated tests
+- SQL Server / Azure SQL support for Production
+- EF Core SQL Server migrations and database seeding
+- 47 unit and integration tests
+- GitHub Actions CI and continuous deployment to Azure App Service
+
+---
+
+## Architecture
+
+```text
 HTTP Request
-      │
-      ▼
-Minimal API / Controller
-      │
-      ▼
-Service Layer
-      │
-      ▼
-Repository Layer
-      │
-      ▼
+      ↓
+Controllers
+      ↓
+Services
+      ↓
+Repositories
+      ↓
 Entity Framework Core
-      │
-      ▼
-SQLite Database
+      ↓
+SQLite (local/tests) or Azure SQL (production)
+````
+
+---
+
+## Production Deployment
+
+The API is deployed to Azure using:
+
+* Azure App Service on Linux with .NET 8
+* Azure SQL Database serverless
+* GitHub Actions continuous deployment from `main`
+* OpenID Connect (OIDC) authentication—no publish-profile secret stored in GitHub
+* App-scoped `Website Contributor` permissions
+* SQL Server connection retry handling for temporary Azure SQL availability events
+* Health checks:
+
+```text
+GET /health/live
+GET /health/ready
 ```
 
----
+Swagger is intentionally disabled in Production. Anonymous requests to protected API endpoints return `401 Unauthorized`.
 
-# Technologies
-
-- C#
-- ASP.NET Core
-- Entity Framework Core
-- LINQ
-- SQLite
-- Swagger / OpenAPI
-- Dependency Injection
-- Git
-- GitHub
+See [Azure deployment documentation](docs/Backend-Engineering-Handbook/07-Azure/Deployment.md) for configuration details and deployment notes.
 
 ---
 
-# Current Learning Goals
+## Technologies
 
-- ASP.NET Controllers
-- Middleware
-- Request Pipeline
-- API Versioning
-- Unit Testing
-- Integration Testing
-- Azure App Service
-- Azure SQL
-- Azure Key Vault
-- Azure Service Bus
+* C# / .NET 8
+* ASP.NET Core Web API
+* Entity Framework Core
+* SQLite
+* SQL Server / Azure SQL
+* JWT Bearer Authentication
+* Swagger / OpenAPI
+* xUnit integration and unit testing
+* GitHub Actions
+* Azure App Service
 
 ---
 
-# Repository Structure
+## Repository Structure
 
-```
+```text
 ClinicIntakeApi
-│
 ├── Controllers
 ├── Data
 ├── Dtos
 ├── Filters
+├── Middleware
 ├── Models
 ├── Repositories
 ├── Services
+├── Migrations
 ├── docs
 │   └── Backend-Engineering-Handbook
 └── Program.cs
@@ -100,46 +101,25 @@ ClinicIntakeApi
 
 ---
 
-# Backend Engineering Handbook
+## Backend Engineering Handbook
 
-One unique aspect of this project is the included **Backend Engineering Handbook**.
+This repository includes a companion [Backend Engineering Handbook](docs/Backend-Engineering-Handbook/README.md).
 
-Every concept learned while building the API is documented, including:
-
-- C# fundamentals
-- LINQ
-- Dependency Injection
-- Entity Framework Core
-- API Design
-- Architecture
-- ASP.NET Core
-- Azure
-- Testing
-- Design Patterns
-- Interview Preparation
-- Cheat Sheets
-
-The goal is to create a personal backend engineering reference that can be revisited long after the project is complete.
+It documents the concepts used to build the API, including C#, LINQ, Entity Framework Core, API design, architecture, ASP.NET Core, Azure, testing, design patterns, and interview preparation.
 
 ---
 
-# Future Enhancements
+## Next Steps
 
-- Full Controller-based API
-- Authentication & Authorization
-- Azure deployment
-- SQL Server / Azure SQL
-- Logging
-- Application Insights
-- Docker
-- Background Services
-- Health Checks
-- CI/CD with GitHub Actions
+* Azure Key Vault for production secret management
+* Application Insights monitoring and alerting
+* Docker containerization
+* Background services
+* Azure Service Bus integration
 
 ---
 
-# Purpose
+## Purpose
 
-This project is intentionally built one concept at a time to develop a deep understanding of backend engineering rather than simply producing a finished application.
+This project is built incrementally to develop a practical understanding of professional backend engineering. Architectural decisions are documented, tested, and improved as the project evolves.
 
-Every architectural decision is documented, tested, and explained as part of the learning process.
