@@ -199,33 +199,53 @@ Migrations are version-controlled instructions that tell EF Core how to create o
 * `database update` applies the instructions.
 * `__EFMigrationsHistory` tracks what has already been applied.
 
-## Applying Migrations When the API Starts
+## Initializing Databases at Startup
 
-The Clinic Intake API applies pending migrations during startup.
+The Clinic Intake API supports two database providers, and each has a different initialization strategy.
 
 ```csharp
-await db.Database.MigrateAsync();
+if (db.Database.IsSqlite())
+{
+    await db.Database.EnsureCreatedAsync();
+}
+else
+{
+    await db.Database.MigrateAsync();
+}
 ```
 
-This code runs in `DbSeeder.SeedAsync()` before sample data is added.
-
-`MigrateAsync()`:
-
-1. Creates the database if it does not exist.
-2. Reads the `__EFMigrationsHistory` table.
-3. Applies only migrations that have not already been recorded.
-4. Records each applied migration in the history table.
-
-This is different from `EnsureCreatedAsync()`.
-
-| Method | Purpose | Migration history |
+| Provider | Intended use | Startup behavior |
 | --- | --- | --- |
-| `EnsureCreatedAsync()` | Quickly creates tables directly from the current model. | Does not use migrations. |
-| `MigrateAsync()` | Creates or updates a database by applying migration files in order. | Uses `__EFMigrationsHistory`. |
+| SQLite | Disposable local development and isolated integration tests | `EnsureCreatedAsync()` creates the schema directly from the current model. |
+| SQL Server / Azure SQL | Persistent deployed database | `MigrateAsync()` applies version-controlled SQL Server migrations. |
 
-A database created with `EnsureCreatedAsync()` should not later be treated as a migration-managed database. During development, the safe approach is to delete disposable sample data and rebuild it from migrations.
+### Why the Strategies Differ
 
-The project verified migration-based startup by deleting the local `clinic-intake.db`, starting the API, and confirming all migrations appeared in `__EFMigrationsHistory`.
+The local SQLite database is sample data that can be deleted and recreated at any time. It does not need a long-lived migration history.
+
+Azure SQL is persistent. It needs a recorded migration history so deployments can safely apply only schema changes that have not already run.
+
+The project now has a SQL Server baseline migration named:
+
+```text
+InitialSqlServer
+```
+
+It creates the current `Clinics`, `Patients`, and `IntakeRequests` schema using SQL Server data types and identity columns.
+
+### Design-Time DbContext Factory
+
+Entity Framework commands such as `dotnet ef migrations add` need a way to create `ClinicIntakeDbContext`.
+
+`ClinicIntakeDbContextFactory` provides a SQL Server-configured context for EF tooling without starting the API, running seed logic, or connecting to Azure SQL.
+
+This lets the project generate SQL Server migrations and scripts locally:
+
+```bash
+dotnet ef migrations script --idempotent
+```
+
+The generated script can be reviewed or used in an Azure SQL deployment process.
 
 ## Development Notes
 

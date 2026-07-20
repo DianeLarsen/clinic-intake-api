@@ -338,3 +338,6 @@ Fail fast
 ## Reference
 
 - [Configuration in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/)
+
+
+The project now contains a SQL Server baseline migration named `InitialSqlServer`. Azure SQL uses that migration history through `MigrateAsync()`, while disposable SQLite development and test databases use `EnsureCreatedAsync()`.

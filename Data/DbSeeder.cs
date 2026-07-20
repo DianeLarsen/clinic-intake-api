@@ -24,12 +24,26 @@ public static class DbSeeder
         ClinicIntakeDbContext db =
             scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
 
-        // Apply any Entity Framework migrations that have not yet
-        // been recorded in the database's migration history.
         //
-        // This creates a new database when needed and keeps an
-        // existing database schema aligned with the migration files.
-        await db.Database.MigrateAsync();
+        // SQLite is used only for disposable local development and
+        // isolated integration-test databases.
+        //
+        // Create its schema directly from the current EF Core model.
+        //
+        if (db.Database.IsSqlite())
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            //
+            // SQL Server, including Azure SQL, uses migration files.
+            //
+            // MigrateAsync() creates a new database when needed, applies
+            // pending migrations, and records them in migration history.
+            //
+            await db.Database.MigrateAsync();
+        }
 
         // Get the service used to create and update requests.
         IIntakeService intakeService = scope.ServiceProvider.GetRequiredService<IIntakeService>();
