@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicIntakeApi.Migrations
 {
     [DbContext(typeof(ClinicIntakeDbContext))]
-    [Migration("20260720164924_InitialSqlServer")]
+    [Migration("20260720191446_InitialSqlServer")]
     partial class InitialSqlServer
     {
         /// <inheritdoc />
@@ -102,7 +102,7 @@ namespace ClinicIntakeApi.Migrations
                     b.HasOne("ClinicIntakeApi.Models.Clinic", "Clinic")
                         .WithMany("Requests")
                         .HasForeignKey("ClinicId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ClinicIntakeApi.Models.Patient", "Patient")
@@ -121,7 +121,7 @@ namespace ClinicIntakeApi.Migrations
                     b.HasOne("ClinicIntakeApi.Models.Clinic", "Clinic")
                         .WithMany("Patients")
                         .HasForeignKey("ClinicId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Clinic");

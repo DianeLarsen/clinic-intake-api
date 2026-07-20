@@ -99,7 +99,7 @@ namespace ClinicIntakeApi.Migrations
                     b.HasOne("ClinicIntakeApi.Models.Clinic", "Clinic")
                         .WithMany("Requests")
                         .HasForeignKey("ClinicId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ClinicIntakeApi.Models.Patient", "Patient")
@@ -118,7 +118,7 @@ namespace ClinicIntakeApi.Migrations
                     b.HasOne("ClinicIntakeApi.Models.Clinic", "Clinic")
                         .WithMany("Patients")
                         .HasForeignKey("ClinicId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Clinic");
