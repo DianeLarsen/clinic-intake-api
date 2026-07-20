@@ -169,7 +169,10 @@ builder.Services.AddDbContext<ClinicIntakeDbContext>(options =>
     }
     else if (databaseProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
     {
-        options.UseSqlServer(connectionString);
+        options.UseSqlServer(
+            connectionString,
+            sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()
+        );
     }
     else
     {
