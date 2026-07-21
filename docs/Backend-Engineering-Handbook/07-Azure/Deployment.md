@@ -76,3 +76,18 @@ All 47 unit and integration tests pass after the change.
 - Azure SQL Database uses the Azure SQL free serverless offer with overage billing disabled.
 - The Linux App Service Basic B1 plan is approximately $13.14 per month.
 - Delete the resource group when the deployment is no longer needed to stop billable resources.
+
+## Secret Management with Azure Key Vault
+
+Production secrets are stored in Azure Key Vault rather than directly in App Service configuration.
+
+The App Service uses a system-assigned managed identity. That identity has the `Key Vault Secrets User` role, which allows it to read secrets without storing a password or credential in the application.
+
+App Service configuration uses Key Vault references for:
+
+- `ConnectionStrings__DefaultConnection`
+- `Authentication__Schemes__Bearer__SigningKeys__0__Value`
+
+The API receives the resolved secret values at runtime, while the actual Azure SQL connection string and JWT signing key remain stored in Key Vault.
+
+This keeps production secrets out of the source code, GitHub repository, and normal App Service configuration values.
