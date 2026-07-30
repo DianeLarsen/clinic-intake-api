@@ -52,7 +52,7 @@ The first deployment was performed manually:
 4. Upload the ZIP to App Service through the Kudu ZIP deployment endpoint.
 5. Disable SCM publishing credentials again after deployment.
 
-A GitHub Actions deployment workflow is the next planned improvement.
+The API now deploys automatically through GitHub Actions when changes are merged into `main`.
 
 ## Validation
 
@@ -91,3 +91,34 @@ App Service configuration uses Key Vault references for:
 The API receives the resolved secret values at runtime, while the actual Azure SQL connection string and JWT signing key remain stored in Key Vault.
 
 This keeps production secrets out of the source code, GitHub repository, and normal App Service configuration values.
+
+## Continuous Deployment with GitHub Actions
+
+The API deploys automatically whenever a change is merged into the `main` branch.
+
+The deployment workflow:
+
+1. Builds the .NET solution in Release mode.
+2. Publishes only `ClinicIntakeApi.csproj`.
+3. Uploads the published API as a GitHub Actions artifact.
+4. Authenticates to Azure using OpenID Connect (OIDC).
+5. Cleans stale files from App Service before deploying the new package.
+6. Deploys the artifact to the Production App Service slot.
+
+OIDC uses short-lived tokens instead of storing an Azure publish profile or password in GitHub. The Azure identity has the least-privilege `Website Contributor` role scoped to this App Service.
+
+### Deployment Reliability Notes
+
+- The deployment workflow uses `clean: true` so files from an older deployment do not remain in App Service.
+- The API uses `EnableRetryOnFailure()` with SQL Server. This handles temporary Azure SQL availability events, including a serverless database resuming after auto-pause.
+- Azure SQL serverless may return a temporary `40613` error on the first connection after it resumes. EF Core retries the connection automatically.
+
+### Production Verification
+
+After deployment, verify:
+
+```bash
+curl -i https://clinic-intake-api-dlarsen-2026-dhdmdmesgkgygpbz.westus-01.azurewebsites.net/health/live
+
+curl -i https://clinic-intake-api-dlarsen-2026-dhdmdmesgkgygpbz.westus-01.azurewebsites.net/health/ready
+```
