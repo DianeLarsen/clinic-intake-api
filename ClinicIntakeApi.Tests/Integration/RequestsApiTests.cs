@@ -777,4 +777,247 @@ public class RequestsApiTests : IClassFixture<CustomWebApplicationFactory>, IAsy
             Assert.True(requestStillExists);
         }
     }
+
+    [Fact]
+    public async Task GetHistory_AfterStatusUpdate_ReturnsSavedHistoryEntry()
+    {
+        // Arrange
+        int clinicId;
+        int patientId;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            Patient patient = await db.Patients.AsNoTracking().OrderBy(patient => patient.Id).FirstAsync();
+            clinicId = patient.ClinicId;
+            patientId = patient.Id;
+        }
+
+        using HttpClient clinicClient = CreateClientForClinic(clinicId);
+
+        HttpResponseMessage createResponse = await clinicClient.PostAsJsonAsync(
+            "/api/v1/requests",
+            new CreateRequestDto { PatientId = patientId }
+        );
+
+        IntakeRequestResponseDto? createdRequest =
+            await createResponse.Content.ReadFromJsonAsync<IntakeRequestResponseDto>(JsonOptions);
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.NotNull(createdRequest);
+
+        // Act
+        HttpResponseMessage updateResponse = await clinicClient.PutAsJsonAsync(
+            $"/api/v1/requests/{createdRequest.Id}/status",
+            new UpdateRequestStatusDto { Status = RequestStatus.Completed },
+            JsonOptions
+        );
+
+        HttpResponseMessage historyResponse = await clinicClient.GetAsync(
+            $"/api/v1/requests/{createdRequest.Id}/history"
+        );
+
+        List<RequestStatusHistoryDto>? history =
+            await historyResponse.Content.ReadFromJsonAsync<List<RequestStatusHistoryDto>>(JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+        Assert.NotNull(history);
+
+        RequestStatusHistoryDto entry = Assert.Single(history);
+        Assert.Equal("Submitted", entry.PreviousStatus);
+        Assert.Equal("Completed", entry.NewStatus);
+        Assert.False(string.IsNullOrWhiteSpace(entry.UpdatedBy));
+        Assert.NotEqual(default, entry.ChangedAtUtc);
+        Assert.True(entry.ChangedAtUtc <= DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task GetHistory_ReturnsNewestEntryFirst()
+    {
+        // Arrange
+        int clinicId;
+        int patientId;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            Patient patient = await db.Patients.AsNoTracking().OrderBy(patient => patient.Id).FirstAsync();
+            clinicId = patient.ClinicId;
+            patientId = patient.Id;
+        }
+
+        using HttpClient clinicClient = CreateClientForClinic(clinicId);
+
+        HttpResponseMessage createResponse = await clinicClient.PostAsJsonAsync(
+            "/api/v1/requests",
+            new CreateRequestDto { PatientId = patientId }
+        );
+
+        IntakeRequestResponseDto? createdRequest =
+            await createResponse.Content.ReadFromJsonAsync<IntakeRequestResponseDto>(JsonOptions);
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.NotNull(createdRequest);
+
+        // Act
+        HttpResponseMessage firstUpdateResponse = await clinicClient.PutAsJsonAsync(
+            $"/api/v1/requests/{createdRequest.Id}/status",
+            new UpdateRequestStatusDto { Status = RequestStatus.InReview },
+            JsonOptions
+        );
+
+        HttpResponseMessage secondUpdateResponse = await clinicClient.PutAsJsonAsync(
+            $"/api/v1/requests/{createdRequest.Id}/status",
+            new UpdateRequestStatusDto { Status = RequestStatus.Completed },
+            JsonOptions
+        );
+
+        HttpResponseMessage historyResponse = await clinicClient.GetAsync(
+            $"/api/v1/requests/{createdRequest.Id}/history"
+        );
+
+        List<RequestStatusHistoryDto>? history =
+            await historyResponse.Content.ReadFromJsonAsync<List<RequestStatusHistoryDto>>(JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, firstUpdateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, secondUpdateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+        Assert.NotNull(history);
+        Assert.Equal(2, history.Count);
+
+        Assert.Equal("InReview", history[0].PreviousStatus);
+        Assert.Equal("Completed", history[0].NewStatus);
+        Assert.Equal("Submitted", history[1].PreviousStatus);
+        Assert.Equal("InReview", history[1].NewStatus);
+    }
+
+    [Fact]
+    public async Task GetHistory_WhenRequestHasNoStatusChanges_ReturnsEmptyList()
+    {
+        // Arrange
+        int clinicId;
+        int patientId;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            Patient patient = await db.Patients.AsNoTracking().OrderBy(patient => patient.Id).FirstAsync();
+            clinicId = patient.ClinicId;
+            patientId = patient.Id;
+        }
+
+        using HttpClient clinicClient = CreateClientForClinic(clinicId);
+
+        HttpResponseMessage createResponse = await clinicClient.PostAsJsonAsync(
+            "/api/v1/requests",
+            new CreateRequestDto { PatientId = patientId }
+        );
+
+        IntakeRequestResponseDto? createdRequest =
+            await createResponse.Content.ReadFromJsonAsync<IntakeRequestResponseDto>(JsonOptions);
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.NotNull(createdRequest);
+
+        // Act
+        HttpResponseMessage historyResponse = await clinicClient.GetAsync(
+            $"/api/v1/requests/{createdRequest.Id}/history"
+        );
+
+        List<RequestStatusHistoryDto>? history =
+            await historyResponse.Content.ReadFromJsonAsync<List<RequestStatusHistoryDto>>(JsonOptions);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+        Assert.NotNull(history);
+        Assert.Empty(history);
+    }
+
+    [Fact]
+    public async Task GetHistory_WhenRequestDoesNotExist_ReturnsNotFound()
+    {
+        // Act
+        HttpResponseMessage response = await _client.GetAsync("/api/v1/requests/999999/history");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetHistory_WhenRequestBelongsToAnotherClinic_ReturnsNotFound()
+    {
+        // Arrange
+        int ownerClinicId;
+        int otherClinicId;
+        int patientId;
+
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            ClinicIntakeDbContext db =
+                scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
+
+            Patient patient = await db.Patients.AsNoTracking().OrderBy(patient => patient.Id).FirstAsync();
+            ownerClinicId = patient.ClinicId;
+            patientId = patient.Id;
+
+            otherClinicId = await db
+                .Clinics.AsNoTracking()
+                .Where(clinic => clinic.Id != ownerClinicId)
+                .OrderBy(clinic => clinic.Id)
+                .Select(clinic => clinic.Id)
+                .FirstAsync();
+        }
+
+        using HttpClient ownerClient = CreateClientForClinic(ownerClinicId);
+        using HttpClient otherClinicClient = CreateClientForClinic(otherClinicId);
+
+        HttpResponseMessage createResponse = await ownerClient.PostAsJsonAsync(
+            "/api/v1/requests",
+            new CreateRequestDto { PatientId = patientId }
+        );
+
+        IntakeRequestResponseDto? createdRequest =
+            await createResponse.Content.ReadFromJsonAsync<IntakeRequestResponseDto>(JsonOptions);
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        Assert.NotNull(createdRequest);
+
+        // Give the request history that must not be visible to another clinic.
+        HttpResponseMessage updateResponse = await ownerClient.PutAsJsonAsync(
+            $"/api/v1/requests/{createdRequest.Id}/status",
+            new UpdateRequestStatusDto { Status = RequestStatus.Completed },
+            JsonOptions
+        );
+
+        // Act
+        HttpResponseMessage response = await otherClinicClient.GetAsync(
+            $"/api/v1/requests/{createdRequest.Id}/history"
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetHistory_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        // Arrange
+        using HttpClient unauthenticatedClient = _factory.CreateClient();
+
+        // Act
+        HttpResponseMessage response = await unauthenticatedClient.GetAsync("/api/v1/requests/1/history");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

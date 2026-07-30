@@ -132,17 +132,30 @@ public class IntakeServiceTests
             .ReturnsAsync(request);
 
         // Teach the fake repository:
-        // "When this request is saved,
+        // "When this request and its history are saved,
         // pretend the save worked and return true."
         repositoryMock
-            .Setup(repository => repository.UpdateAsync(request, TestClinicId))
+            .Setup(repository =>
+                repository.UpdateAsync(
+                    request,
+                    TestClinicId,
+                    It.IsAny<RequestStatusHistory>()
+                )
+            )
             .ReturnsAsync(true);
         // Create the real service using the fake repository.
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
 
-        bool result = await service.UpdateStatusAsync(123, RequestStatus.Completed, TestClinicId);
+        DateTime testStartedAtUtc = DateTime.UtcNow;
+
+        bool result = await service.UpdateStatusAsync(
+            123,
+            RequestStatus.Completed,
+            TestClinicId,
+            "Diane Larsen"
+        );
 
         // Assert
 
@@ -152,10 +165,22 @@ public class IntakeServiceTests
         // The request's status should now be Completed.
         Assert.Equal(RequestStatus.Completed, request.Status);
 
-        // Check that the service asked the repository
-        // to save the request exactly one time.
+        // Check that the service asked the repository to save the request
+        // and a truthful history entry exactly one time.
         repositoryMock.Verify(
-            repository => repository.UpdateAsync(request, TestClinicId),
+            repository =>
+                repository.UpdateAsync(
+                    request,
+                    TestClinicId,
+                    It.Is<RequestStatusHistory>(history =>
+                        history.IntakeRequestId == request.Id
+                        && history.PreviousStatus == RequestStatus.Submitted
+                        && history.NewStatus == RequestStatus.Completed
+                        && history.UpdatedBy == "Diane Larsen"
+                        && history.ChangedAtUtc >= testStartedAtUtc
+                        && history.ChangedAtUtc <= DateTime.UtcNow
+                    )
+                ),
             Times.Once
         );
     }
@@ -173,10 +198,26 @@ public class IntakeServiceTests
         var service = new IntakeService(repositoryMock.Object);
 
         // Act
-        bool result = await service.UpdateStatusAsync(123, RequestStatus.Completed, TestClinicId);
+        bool result = await service.UpdateStatusAsync(
+            123,
+            RequestStatus.Completed,
+            TestClinicId,
+            "Diane Larsen"
+        );
 
         // Assert
         Assert.False(result);
+
+        // A missing request must not create a pretend audit entry.
+        repositoryMock.Verify(
+            repository =>
+                repository.UpdateAsync(
+                    It.IsAny<IntakeRequest>(),
+                    It.IsAny<int>(),
+                    It.IsAny<RequestStatusHistory>()
+                ),
+            Times.Never
+        );
     }
 
     [Fact]

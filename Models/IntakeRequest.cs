@@ -38,7 +38,7 @@ public class IntakeRequest
         Status = status;
     }
 
-    //
+    public List<RequestStatusHistory> RequestStatusHistory { get; set; } = [];
     // Returns a simple summary for debugging.
     //
     public string GetSummary()

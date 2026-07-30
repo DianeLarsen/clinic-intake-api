@@ -10,7 +10,7 @@ public interface IIntakeService
 
     Task<IntakeRequest?> FindRequestByIdAsync(int id, int clinicId);
 
-    Task<bool> UpdateStatusAsync(int id, RequestStatus status, int clinicId);
+    Task<bool> UpdateStatusAsync(int id, RequestStatus status, int clinicId, string changedBy);
 
     Task<int> GetRequestCountAsync(int clinicId);
 
@@ -28,4 +28,6 @@ public interface IIntakeService
         int pageSize,
         int clinicId
     );
+
+    Task<IEnumerable<RequestStatusHistoryDto>> GetRequestHistoryAsync(int requestId);
 }

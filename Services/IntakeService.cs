@@ -36,7 +36,12 @@ public class IntakeService : IIntakeService
         return await _repository.GetByIdAsync(id, clinicId);
     }
 
-    public async Task<bool> UpdateStatusAsync(int id, RequestStatus status, int clinicId)
+    public async Task<bool> UpdateStatusAsync(
+        int id,
+        RequestStatus status,
+        int clinicId,
+        string changedBy
+    )
     {
         IntakeRequest? request = await FindRequestByIdAsync(id, clinicId);
 
@@ -45,9 +50,17 @@ public class IntakeService : IIntakeService
             return false;
         }
 
+        RequestStatusHistory statusHistory = new RequestStatusHistory
+        {
+            IntakeRequestId = id,
+            PreviousStatus = request.Status,
+            NewStatus = status,
+            UpdatedBy = changedBy,
+        };
+
         request.UpdateStatus(status);
 
-        return await _repository.UpdateAsync(request, clinicId);
+        return await _repository.UpdateAsync(request, clinicId, statusHistory);
     }
 
     public async Task<int> GetRequestCountAsync(int clinicId)
@@ -159,5 +172,19 @@ public class IntakeService : IIntakeService
     public async Task<bool> DeleteRequestAsync(int id, int clinicId)
     {
         return await _repository.DeleteAsync(id, clinicId);
+    }
+
+    public async Task<IEnumerable<RequestStatusHistoryDto>> GetRequestHistoryAsync(int requestId)
+    {
+        IEnumerable<RequestStatusHistory> history =
+       await _repository.GetRequestHistoryAsync(requestId);
+        return history.Select(history => new RequestStatusHistoryDto
+    {
+        Id = history.Id,
+        PreviousStatus = history.PreviousStatus.ToString(),
+        NewStatus = history.NewStatus.ToString(),
+        UpdatedBy = history.UpdatedBy ?? "",
+        ChangedAtUtc = history.ChangedAtUtc
+    });
     }
 }

@@ -19,7 +19,7 @@ public static class DbSeeder
     public static async Task SeedAsync(IServiceProvider services)
     {
         using IServiceScope scope = services.CreateScope();
-
+        const string seededBy = "Development Seeder";
         // Get the database context.
         ClinicIntakeDbContext db =
             scope.ServiceProvider.GetRequiredService<ClinicIntakeDbContext>();
@@ -179,7 +179,8 @@ public static class DbSeeder
                     await intakeService.UpdateStatusAsync(
                         request.Id,
                         RequestStatus.InReview,
-                        patient.ClinicId
+                        patient.ClinicId,
+                        seededBy
                     );
                 }
                 else if (i % 5 == 0)
@@ -187,7 +188,8 @@ public static class DbSeeder
                     await intakeService.UpdateStatusAsync(
                         request.Id,
                         RequestStatus.Completed,
-                        patient.ClinicId
+                        patient.ClinicId,
+                        seededBy
                     );
                 }
             }

@@ -194,6 +194,23 @@ public class RequestsController : ControllerBase
         return request is not null ? Ok(request) : NotFound();
     }
 
+    [HttpGet("{id}/history")]
+    public async Task<IActionResult> GetHistory(int id)
+    {
+        int clinicId = User.GetRequiredClinicId();
+
+        IntakeRequest? request = await _intakeService.FindRequestByIdAsync(id, clinicId);
+
+        if (request is null)
+        {
+            return NotFound();
+        }
+
+        var history = await _intakeService.GetRequestHistoryAsync(id);
+
+        return Ok(history);
+    }
+
     //
     // POST /requests
     //
@@ -252,8 +269,13 @@ public class RequestsController : ControllerBase
     public async Task<IActionResult> UpdateStatus(int id, UpdateRequestStatusDto dto)
     {
         int clinicId = User.GetRequiredClinicId();
+        string changedBy =
+            User.Identity?.Name
+            ?? throw new InvalidOperationException(
+                "The authenticated user does not have a name claim."
+            );
 
-        bool updated = await _intakeService.UpdateStatusAsync(id, dto.Status, clinicId);
+        bool updated = await _intakeService.UpdateStatusAsync(id, dto.Status, clinicId, changedBy);
 
         if (!updated)
         {
