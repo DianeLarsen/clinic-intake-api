@@ -291,6 +291,37 @@ app.MapHealthChecks(
 
 app.MapControllers();
 
+app.MapGet("/", () => Results.Ok(new
+{
+    name = "Clinic Intake API",
+    version = "v1",
+    documentation = "/swagger",
+    access = new
+    {
+        publicEndpoints = new[]
+        {
+            "GET /",
+            "GET /health/live",
+            "GET /health/ready",
+            "GET /swagger"
+        },
+        protectedEndpoints = "All /api/v1/requests endpoints require a valid JWT Bearer token."
+    },
+    health = new
+    {
+        live = "/health/live",
+        ready = "/health/ready"
+    },
+    endpoints = new[]
+    {
+        "GET /api/v1/requests (authenticated)",
+        "GET /api/v1/requests/{id} (authenticated)",
+        "POST /api/v1/requests (authenticated)",
+        "PUT /api/v1/requests/{id}/status (authenticated)",
+        "GET /api/v1/requests/{id}/history (authenticated)"
+    }
+}));
+
 //
 // Start listening for HTTP requests.
 //
