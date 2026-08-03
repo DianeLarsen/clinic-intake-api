@@ -11,9 +11,11 @@ public interface IIntakeRepository
 
     Task<IntakeRequest?> GetByIdAsync(int id, int clinicId);
 
-    Task<bool> UpdateAsync(IntakeRequest request, int clinicId);
+    Task<bool> UpdateAsync(IntakeRequest request, int clinicId, RequestStatusHistory statusHistory);
 
     Task<bool> DeleteAsync(int id, int clinicId);
 
     Task<Patient?> GetPatientByIdAsync(int patientId, int clinicId);
+
+    Task<IEnumerable<RequestStatusHistory>> GetRequestHistoryAsync(int requestId);
 }

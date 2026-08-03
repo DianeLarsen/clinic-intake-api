@@ -6,6 +6,7 @@ namespace ClinicIntakeApi.Repositories;
 public class InMemoryIntakeRepository : IIntakeRepository
 {
     private readonly List<IntakeRequest> _requests = [];
+    private readonly List<RequestStatusHistory> _statusHistories = [];
 
     private readonly List<Patient> _patients =
     [
@@ -58,7 +59,7 @@ public class InMemoryIntakeRepository : IIntakeRepository
         return Task.FromResult(request);
     }
 
-    public Task<bool> UpdateAsync(IntakeRequest request, int clinicId)
+    public Task<bool> UpdateAsync(IntakeRequest request, int clinicId, RequestStatusHistory statusHistory)
     {
         // The request must belong to the authenticated clinic
         // and must already exist in this repository.
@@ -70,6 +71,11 @@ public class InMemoryIntakeRepository : IIntakeRepository
 
         // The object stored in the list is already updated
         // because the service modified that same object.
+        if (exists)
+        {
+            _statusHistories.Add(statusHistory);
+        }
+
         return Task.FromResult(exists);
     }
 
@@ -92,5 +98,14 @@ public class InMemoryIntakeRepository : IIntakeRepository
         );
 
         return Task.FromResult(patient);
+    }
+
+        public async Task<IEnumerable<RequestStatusHistory>> GetRequestHistoryAsync(int requestId)
+    {
+        return await Task.FromResult(
+            _statusHistories
+                .Where(history => history.IntakeRequestId == requestId)
+                .ToList()
+        );
     }
 }

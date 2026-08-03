@@ -46,14 +46,18 @@ public class EfIntakeRepository : IIntakeRepository
         );
     }
 
-    public async Task<bool> UpdateAsync(IntakeRequest request, int clinicId)
+    public async Task<bool> UpdateAsync(
+        IntakeRequest request,
+        int clinicId,
+        RequestStatusHistory statusHistory
+    )
     {
         // Refuse to save an entity belonging to another clinic.
         if (request.ClinicId != clinicId)
         {
             return false;
         }
-
+        _db.RequestStatusHistories.Add(statusHistory);
         // The request was loaded by GetByIdAsync(), so EF Core
         // is already tracking its changed status.
         await _db.SaveChangesAsync();
@@ -82,5 +86,14 @@ public class EfIntakeRepository : IIntakeRepository
         return await _db.Patients.FirstOrDefaultAsync(patient =>
             patient.Id == patientId && patient.ClinicId == clinicId
         );
+    }
+
+    public async Task<IEnumerable<RequestStatusHistory>> GetRequestHistoryAsync(int requestId)
+    {
+        return await _db
+            .RequestStatusHistories.Where(history => history.IntakeRequestId == requestId)
+            .OrderByDescending(history => history.ChangedAtUtc)
+            .ThenByDescending(history => history.Id)
+            .ToListAsync();
     }
 }
