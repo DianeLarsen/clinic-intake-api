@@ -21,7 +21,7 @@ A production-deployed REST API for managing clinic intake requests. Built with A
 - SQL Server / Azure SQL support for Production
 - EF Core SQL Server migrations and database seeding
 - 47 unit and integration tests
-- GitHub Actions CI and continuous deployment to Azure App Service
+- GitHub Actions CI and deployment to Azure App Service
 
 ---
 
@@ -39,7 +39,7 @@ Repositories
 Entity Framework Core
       ↓
 SQLite (local/tests) or Azure SQL (production)
-````
+```
 
 ---
 
@@ -81,6 +81,22 @@ See [Azure deployment documentation](docs/Backend-Engineering-Handbook/07-Azure/
 
 ---
 
+## Run locally
+
+### Prerequisites
+
+- .NET 8 SDK
+- A JWT signing key configured through .NET user secrets
+
+### Run the API
+
+```bash
+git clone https://github.com/DianeLarsen/clinic-intake-api.git
+cd clinic-intake-api
+dotnet restore
+dotnet run --project ClinicIntakeApi
+```
+
 ## Repository Structure
 
 ```text
@@ -109,13 +125,16 @@ It documents the concepts used to build the API, including C#, LINQ, Entity Fram
 
 ---
 
-## Next Steps
+## Post-release backlog
 
-* Azure Key Vault for production secret management
-* Application Insights monitoring and alerting
-* Docker containerization
-* Background services
-* Azure Service Bus integration
+Version 1.0 is complete. Future enhancements are tracked separately as
+learning and production-readiness work.
+
+- Filter requests by status and date
+- Expand request-status history
+- Add Application Insights monitoring and alerts
+- Practice safe production schema migrations
+- Containerize the application with Docker
 
 ---
 
